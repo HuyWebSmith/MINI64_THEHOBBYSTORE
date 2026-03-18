@@ -110,6 +110,6 @@ class UserService {
       reject(e);
     }
   }
-  async;
+  async deleteUser(id) {}
 }
 module.exports = new UserService();
