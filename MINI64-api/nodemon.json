@@ -1,0 +1,12 @@
+{
+  "watch": [
+    "src/controllers",
+    "src/services",
+    "src/models",
+    "src/routes",
+    "src/config"
+  ],
+  "ext": "js,json",
+  "ignore": ["node_modules", "uploads", "logs"],
+  "delay": 200
+}
