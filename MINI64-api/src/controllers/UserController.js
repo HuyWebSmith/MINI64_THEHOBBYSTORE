@@ -65,14 +65,32 @@ class UserController {
       const userId = req.params.id;
       const data = req.body;
       if (!userId) {
-        return res.status(200).json({
+        return res.status(404).json({
+          status: "ERR",
+          message: "The useId is required",
+        });
+      }
+
+      const response = await UserService.updateUser(userId, data);
+      return res.status(200).json(response);
+    } catch (e) {
+      return res.status(404).json({
+        message: e,
+      });
+    }
+  }
+  async deleteUser(req, res) {
+    try {
+      const userId = req.params.id;
+
+      if (!userId) {
+        return res.status(404).json({
           status: "OK",
           message: "The useId is required",
         });
       }
-      console.log(userId);
 
-      const response = await UserService.updateUser(userId, data);
+      const response = await UserService.deleteUser(userId);
       return res.status(200).json(response);
     } catch (e) {
       return res.status(404).json({

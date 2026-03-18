@@ -110,5 +110,6 @@ class UserService {
       reject(e);
     }
   }
+  async;
 }
 module.exports = new UserService();
