@@ -22,7 +22,7 @@ class UserService {
         };
       }
 
-      const hash = bcrypt.hash(password, 10);
+      const hash = await bcrypt.hash(password, 10);
 
       const createdUser = await User.create({
         name,
@@ -39,7 +39,7 @@ class UserService {
         };
       }
     } catch (e) {
-      reject(e);
+      return { status: "ERR", message: e.message };
     }
   }
 
@@ -99,7 +99,6 @@ class UserService {
         };
       }
       const updateUser = await User.findByIdAndUpdate(id, data, { new: true });
-      console.log("updateUser", updateUser);
 
       return {
         status: "OK",
@@ -110,6 +109,27 @@ class UserService {
       reject(e);
     }
   }
-  async deleteUser(id) {}
+  async deleteUser(id) {
+    try {
+      const checkUser = await User.findOne({
+        _id: id,
+      });
+      if (!checkUser) {
+        return {
+          status: "ERR",
+          message: "User not found",
+        };
+      }
+
+      await User.findByIdAndDelete(id);
+
+      return {
+        status: "OK",
+        message: "DELETE USER SUCCESS",
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 module.exports = new UserService();

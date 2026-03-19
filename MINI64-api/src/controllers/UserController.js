@@ -1,4 +1,3 @@
-const User = require("../models/UserModel");
 const UserService = require("../services/UserService");
 class UserController {
   async createUser(req, res) {
@@ -65,7 +64,7 @@ class UserController {
       const userId = req.params.id;
       const data = req.body;
       if (!userId) {
-        return res.status(404).json({
+        return res.status(400).json({
           status: "ERR",
           message: "The useId is required",
         });
@@ -74,8 +73,9 @@ class UserController {
       const response = await UserService.updateUser(userId, data);
       return res.status(200).json(response);
     } catch (e) {
-      return res.status(404).json({
-        message: e,
+      console.error(e);
+      return res.status(500).json({
+        message: "Lỗi server, thử lại sau",
       });
     }
   }
@@ -84,13 +84,13 @@ class UserController {
       const userId = req.params.id;
 
       if (!userId) {
-        return res.status(404).json({
-          status: "OK",
+        return res.status(400).json({
+          status: "ERR",
           message: "The useId is required",
         });
       }
-
       const response = await UserService.deleteUser(userId);
+
       return res.status(200).json(response);
     } catch (e) {
       return res.status(404).json({
