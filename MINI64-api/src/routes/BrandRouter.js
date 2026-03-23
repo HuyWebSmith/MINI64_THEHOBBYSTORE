@@ -1,7 +1,13 @@
-const express = require("express");
-const router = express.Router();
-const BrandController = require("../controllers/BrandController");
+import express from "express";
+import BrandController from "../controllers/BrandController.js";
+import { adminAuthMiddleware } from "../middlewares/authMiddleware.js";
 
-router.post("/create-brand", BrandController.createBrand);
-router.put("/update-brand/:id");
-module.exports = router;
+const router = express.Router();
+
+router.post("/create", adminAuthMiddleware, BrandController.createBrand);
+router.put("/update/:id", adminAuthMiddleware, BrandController.updateBrand);
+router.delete("/delete/:id", adminAuthMiddleware, BrandController.deleteBrand);
+router.get("/get-details/:id", BrandController.getDetailBrand);
+router.get("/get-all", BrandController.getAllBrand);
+
+export default router;
