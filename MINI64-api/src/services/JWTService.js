@@ -1,5 +1,5 @@
-const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
+import jwt from "jsonwebtoken";
+
 class JWTService {
   async generalAccessToken(payload) {
     const access_token = jwt.sign(
@@ -11,16 +11,18 @@ class JWTService {
     );
     return access_token;
   }
-
+  async verifyRefreshToken(token) {
+    return jwt.verify(token, process.env.REFRESH_TOKEN);
+  }
   async generalRefreshToken(payload) {
     const refresh_token = jwt.sign(
       {
         payload,
       },
       process.env.REFRESH_TOKEN,
-      { expiresIn: "365d" },
+      { expiresIn: "7d" },
     );
     return refresh_token;
   }
 }
-module.exports = new JWTService();
+export default new JWTService();

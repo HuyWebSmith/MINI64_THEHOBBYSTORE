@@ -2,7 +2,7 @@ import User from "../models/UserModel.js";
 import bcrypt from "bcrypt";
 import JWTService from "../services/JWTService.js";
 
-class UserService {
+class AuthService {
   async createUser(newUser) {
     const { name, email, password, confirmPassword, phone } = newUser;
     try {
@@ -12,9 +12,7 @@ class UserService {
           message: "Password and Confirm Password are not the same",
         };
       }
-      const checkUser = await User.findOne({
-        email: email,
-      });
+      const checkUser = await User.findOne({ email });
       if (checkUser !== null) {
         return {
           status: "ERR",
@@ -28,9 +26,9 @@ class UserService {
         name,
         email,
         password: hash,
-
         phone,
       });
+
       if (createdUser) {
         return {
           status: "OK",
@@ -46,9 +44,7 @@ class UserService {
   async loginUser(user) {
     const { email, password } = user;
     try {
-      const checkUser = await User.findOne({
-        email: email,
-      });
+      const checkUser = await User.findOne({ email });
       if (checkUser === null) {
         return {
           status: "ERR",
@@ -63,76 +59,79 @@ class UserService {
           message: "Email or Password is invalid",
         };
       }
-      //  const { password: pass, confirmPassword, ...userData } = checkUser._doc;
+
       const access_token = await JWTService.generalAccessToken({
         id: checkUser.id,
-        isAdmin: checkUser.isAdmin,
+        role: checkUser.role,
       });
+
       const refresh_token = await JWTService.generalRefreshToken({
         id: checkUser.id,
-        isAdmin: checkUser.isAdmin,
+        role: checkUser.role,
       });
+
+      // Lưu refresh_token vào database
+      await User.findByIdAndUpdate(
+        checkUser.id,
+        { refresh_token },
+        { new: true },
+      );
+
+      const { password: pass, refresh_token: rt, ...userData } = checkUser._doc;
+
       return {
         status: "OK",
         message: "SUCCESS",
+        data: userData,
         access_token,
         refresh_token,
       };
     } catch (e) {
-      return {
-        status: "ERR",
-        message: e.message,
-      };
+      return { status: "ERR", message: e.message };
     }
   }
 
-  async updateUser(id, data) {
+  async logoutUser(token) {
     try {
-      const checkUser = await User.findOne({
-        _id: id,
-      });
+      // Tìm user đang giữ token này và xóa nó đi
+      await User.findOneAndUpdate(
+        { refresh_token: token },
+        { refresh_token: "" },
+      );
+      return {
+        status: "OK",
+        message: "Logout success",
+      };
+    } catch (e) {
+      return { status: "ERR", message: e.message };
+    }
+  }
 
-      if (!checkUser) {
+  async refreshToken(token) {
+    try {
+      // Kiểm tra xem token này có còn tồn tại trong DB không
+      const user = await User.findOne({ refresh_token: token });
+      if (!user) {
         return {
           status: "ERR",
-          message: "User not found",
+          message: "Token is not in database",
         };
       }
-      const updateUser = await User.findByIdAndUpdate(id, data, { new: true });
+
+      const access_token = await JWTService.generalAccessToken({
+        id: user.id,
+        role: user.role,
+      });
 
       return {
         status: "OK",
         message: "SUCCESS",
-        data: updateUser,
+        access_token,
       };
     } catch (e) {
-      return {
-        status: "ERR",
-        message: e.message,
-      };
-    }
-  }
-  async deleteUser(id) {
-    try {
-      const checkUser = await User.findOne({
-        _id: id,
-      });
-      if (!checkUser) {
-        return {
-          status: "ERR",
-          message: "User not found",
-        };
-      }
-
-      await User.findByIdAndDelete(id);
-
-      return {
-        status: "OK",
-        message: "DELETE USER SUCCESS",
-      };
-    } catch (error) {
-      throw error;
+      return { status: "ERR", message: e.message };
     }
   }
 }
-export default new UserService();
+
+export default new AuthService();
