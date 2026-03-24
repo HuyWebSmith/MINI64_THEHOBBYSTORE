@@ -12,3 +12,13 @@
   opacity: 1;
   visibility: visible;
 }
+
+#icons {
+  display: none;
+}
+
+#product-box:hover{
+  #icons {
+    display: flex !important;
+  }
+}
