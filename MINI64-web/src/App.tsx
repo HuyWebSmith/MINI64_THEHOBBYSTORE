@@ -1,16 +1,16 @@
 import { useState } from "react";
 
 import "./App.css";
-import Header from "./sections/Header";
-import Hero from "./sections/Hero";
-import Category from "./sections/Category";
-import Types from "./sections/Types";
-import Services from "./sections/Services";
-import ProductsGrid from "./sections/ProductsGrid";
-import Banner from "./sections/Banner";
-import Reviews from "./sections/Reviews";
-import Insta from "./sections/Insta";
-import Footer from "./sections/Footer";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import Category from "./components/Category";
+import Types from "./components/Types";
+import Services from "./components/Services";
+import ProductsGrid from "./components/ProductsGrid";
+import Banner from "./components/Banner";
+import Reviews from "./components/Reviews";
+import Insta from "./components/Insta";
+import Footer from "./components/Footer";
 
 function App() {
   useState(0);
