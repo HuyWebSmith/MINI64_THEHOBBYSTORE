@@ -1,33 +1,30 @@
-import { useState } from "react";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import "./App.css";
-import Header from "./components/Header";
-import Hero from "./components/Hero";
-import Category from "./components/Category";
-import Types from "./components/Types";
-import Services from "./components/Services";
-import ProductsGrid from "./components/ProductsGrid";
-import Banner from "./components/Banner";
-import Reviews from "./components/Reviews";
-import Insta from "./components/Insta";
-import Footer from "./components/Footer";
+// Import các trang
+import Home from "./layouts/Home";
+import Login from "./pages/SignInPage";
+import SignUp from "./pages/SignUpPage";
+
+// Import các thành phần dùng chung
+import Header from "./layouts/Header";
+import Footer from "./layouts/Footer";
 
 function App() {
-  useState(0);
-
   return (
-    <>
+    <Router>
       <Header />
-      <Hero />
-      <Category />
-      <Types />
-      <Services />
-      <ProductsGrid />
-      <Banner />
-      <Reviews />
-      <Insta />
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+
+        <Route path="/login" element={<Login />} />
+
+        <Route path="/signup" element={<SignUp />} />
+      </Routes>
+
       <Footer />
-    </>
+    </Router>
   );
 }
 
