@@ -4,7 +4,7 @@ import type { ChangeEvent, FormEvent } from "react";
 // 2. Import Link để dùng ở cuối trang (tránh lỗi unused hoặc lỗi undefined)
 import { Link, useNavigate } from "react-router-dom";
 import axios, { isAxiosError } from "axios";
-
+const apiUrl = import.meta.env.VITE_API_URL;
 const SignUpPage = () => {
   const navigate = useNavigate();
 
