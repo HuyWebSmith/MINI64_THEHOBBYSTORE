@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react"; // Fix lỗi Verbatim
 import { Link } from "react-router-dom";
 import axios, { isAxiosError } from "axios";
+import { useNavigate } from "react-router-dom";
 const apiUrl = import.meta.env.VITE_API_URL;
 const SignInPage = () => {
   const [formData, setFormData] = useState({
@@ -14,22 +15,23 @@ const SignInPage = () => {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
+  const navigate = useNavigate();
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/auth/sign-in`,
-        formData,
-      );
+      const res = await axios.post(`${apiUrl}/api/auth/sign-in`, formData);
       if (res.status === 200) {
         localStorage.setItem("access_token", res.data.access_token);
 
         localStorage.setItem("user_info", JSON.stringify(res.data.data));
-
-        window.location.href = "/";
+        const userRole = res.data.data.role;
+        if (userRole === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       }
     } catch (err) {
       if (isAxiosError(err)) {
