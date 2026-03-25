@@ -20,7 +20,10 @@ const SignInPage = () => {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post(`${apiUrl}/api/auth/sign-in`, formData);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/sign-in`,
+        formData,
+      );
       if (res.status === 200) {
         localStorage.setItem("access_token", res.data.access_token);
 
