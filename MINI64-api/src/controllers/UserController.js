@@ -1,6 +1,18 @@
 import UserService from "../services/UserService.js";
 import { StatusCodes } from "http-status-codes";
 class UserController {
+  async getAllUsers(req, res) {
+    try {
+      const response = await UserService.getAllUsers();
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      console.error(e);
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        message: "Lỗi server, thử lại sau",
+      });
+    }
+  }
+
   async updateUser(req, res) {
     try {
       const userId = req.params.id;

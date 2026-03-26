@@ -28,6 +28,10 @@ const userSchema = new mongoose.Schema(
     refresh_token: {
       type: String,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
