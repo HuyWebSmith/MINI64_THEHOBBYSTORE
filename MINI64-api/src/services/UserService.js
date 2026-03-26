@@ -3,6 +3,26 @@ import bcrypt from "bcrypt";
 import JWTService from "../services/JWTService.js";
 
 class UserService {
+  async getAllUsers() {
+    try {
+      const users = await User.find()
+        .select("-password -refresh_token")
+        .sort({ createdAt: -1 });
+
+      return {
+        status: "OK",
+        message: "SUCCESS",
+        data: users,
+        total: users.length,
+      };
+    } catch (e) {
+      return {
+        status: "ERR",
+        message: e.message,
+      };
+    }
+  }
+
   async createUser(newUser) {
     const { name, email, password, confirmPassword, phone } = newUser;
     try {
