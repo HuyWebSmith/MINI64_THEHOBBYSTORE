@@ -33,6 +33,8 @@ import AppLayout from "./layouts/AppLayout";
 import { ScrollToTop } from "./components/admin_component/common/ScrollToTop";
 import ProtectedRoute from "./components/admin_component/auth/ProtectedRoute";
 import ProductManagement from "./pages/ProductManagementPage/ProductManagement";
+import BrandManagement from "./pages/BrandManagementPage/BrandManagement";
+import CategoryManagement from "./pages/CategoryManagementPage/CategoryManagement";
 function App() {
   return (
     <Router>
@@ -62,6 +64,8 @@ function App() {
           <Route path="/admin" element={<AppLayout />}>
             <Route index element={<Blank />} />
             <Route path="products" element={<ProductManagement />} />
+            <Route path="brands" element={<BrandManagement />} />
+            <Route path="categories" element={<CategoryManagement />} />
             <Route path="profile" element={<UserProfiles />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="form-elements" element={<FormElements />} />
