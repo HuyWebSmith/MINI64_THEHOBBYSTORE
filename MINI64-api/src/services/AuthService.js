@@ -132,6 +132,42 @@ class AuthService {
       return { status: "ERR", message: e.message };
     }
   }
+
+  async lockUser(id, isLock) {
+    try {
+      const updatedUser = await User.findByIdAndUpdate(
+        id,
+        { isBlocked: isLock },
+        { new: true },
+      );
+
+      if (!updatedUser) {
+        return {
+          status: "ERR",
+          message: "Người dùng không tồn tại",
+        };
+      }
+      if (updatedUser.role === "admin") {
+        return res.status(400).json({
+          status: "ERR",
+          message: "Không thể khóa tài khoản có quyền Quản trị viên (Admin)!",
+        });
+      }
+      return {
+        status: "OK",
+        message: isLock
+          ? "Đã khóa tài khoản thành công"
+          : "Đã mở khóa tài khoản thành công",
+        data: updatedUser,
+      };
+    } catch (error) {
+      console.error("Lỗi lockUser:", error);
+      return {
+        status: "ERR",
+        message: "Có lỗi xảy ra khi khóa người dùng",
+      };
+    }
+  }
 }
 
 export default new AuthService();

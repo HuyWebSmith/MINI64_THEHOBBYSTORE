@@ -154,6 +154,36 @@ class AuthController {
       });
     }
   }
+
+  async lockUser(req, res) {
+    try {
+      const { id } = req.params;
+      const { isBlocked } = req.body;
+
+      if (!id) {
+        return res.status(400).json({
+          status: "ERR",
+          message: "ID người dùng là bắt buộc",
+        });
+      }
+
+      if (typeof isBlocked !== "boolean") {
+        return res.status(400).json({
+          status: "ERR",
+          message: "Trạng thái isBlocked phải là true hoặc false",
+        });
+      }
+
+      const response = await AuthService.lockUser(id, isBlocked);
+
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "ERR",
+        message: e.message || "Lỗi máy chủ nội bộ",
+      });
+    }
+  }
 }
 
 export default new AuthController();

@@ -31,14 +31,8 @@ interface EditableProduct {
   stock: number;
   rating: number;
   description: string;
-  category?: {
-    _id: string;
-    name: string;
-  } | null;
-  brand?: {
-    _id: string;
-    name: string;
-  } | null;
+  category?: { _id: string; name: string } | null;
+  brand?: { _id: string; name: string } | null;
 }
 
 const initialFormData: ProductFormData = {
@@ -53,7 +47,7 @@ const initialFormData: ProductFormData = {
 };
 
 export default function ProductManagement() {
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [categories, setCategories] = useState<OptionItem[]>([]);
   const [brands, setBrands] = useState<OptionItem[]>([]);
   const [formData, setFormData] = useState<ProductFormData>(initialFormData);
@@ -64,57 +58,48 @@ export default function ProductManagement() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
+  // Lấy danh mục và thương hiệu khi mở Modal
   useEffect(() => {
-    if (!showAddForm) {
-      return;
-    }
+    if (!showModal) return;
 
     const fetchOptions = async () => {
       try {
         setLoadingOptions(true);
-        setError("");
-
         const [categoryResponse, brandResponse] = await Promise.all([
           axios.get(`${apiUrl}/api/category/get-all`),
           axios.get(`${apiUrl}/api/brand/get-all`, {
             params: { limit: 100, page: 0 },
           }),
         ]);
-
         setCategories(categoryResponse.data?.data ?? []);
         setBrands(brandResponse.data?.data ?? []);
-      } catch (err) {
-        setError("Khong the tai danh muc hoac thuong hieu tu database.");
-        console.error(err);
+      } catch (error) {
+        console.error("Lỗi tải dữ liệu:", error);
+        setError("Không thể tải danh mục hoặc thương hiệu.");
       } finally {
         setLoadingOptions(false);
       }
     };
-
     fetchOptions();
-  }, [showAddForm]);
+  }, [showModal]);
 
   const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >,
   ) => {
-    const { name, value } = event.target;
-    setFormData((currentForm) => ({
-      ...currentForm,
-      [name]: value,
-    }));
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const resetForm = () => {
+  const closeModal = () => {
+    setShowModal(false);
     setFormData(initialFormData);
     setEditingProductId(null);
     setError("");
   };
 
   const handleEditProduct = (product: EditableProduct) => {
-    setShowAddForm(true);
     setEditingProductId(product._id);
-    setSuccessMessage("");
-    setError("");
     setFormData({
       name: product.name,
       image: product.image,
@@ -125,35 +110,26 @@ export default function ProductManagement() {
       category: product.category?._id ?? "",
       brand: product.brand?._id ?? "",
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setShowModal(true);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const accessToken = localStorage.getItem("access_token");
 
     if (!accessToken) {
-      setError(
-        `Ban can dang nhap tai khoan admin de ${editingProductId ? "cap nhat" : "them"} san pham.`,
-      );
+      setError("Bạn cần đăng nhập quyền Admin.");
       return;
     }
 
     try {
       setSubmitting(true);
       setError("");
-      setSuccessMessage("");
-
       const payload = {
-        name: formData.name,
-        image: formData.image,
+        ...formData,
         price: Number(formData.price),
         stock: Number(formData.stock),
         rating: Number(formData.rating),
-        description: formData.description,
-        category: formData.category,
-        brand: formData.brand,
       };
 
       if (editingProductId) {
@@ -161,28 +137,26 @@ export default function ProductManagement() {
           `${apiUrl}/api/product/update/${editingProductId}`,
           payload,
           {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
+            headers: { Authorization: `Bearer ${accessToken}` },
           },
         );
-        setSuccessMessage("Cap nhat san pham thanh cong.");
+        setSuccessMessage("Cập nhật sản phẩm thành công!");
       } else {
         await axios.post(`${apiUrl}/api/product/create`, payload, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setSuccessMessage("Them san pham thanh cong.");
+        setSuccessMessage("Thêm sản phẩm thành công!");
       }
 
-      setRefreshKey((currentKey) => currentKey + 1);
-      resetForm();
-      setShowAddForm(false);
-    } catch (err) {
-      setError(
-        `${editingProductId ? "Cap nhat" : "Them"} san pham that bai. Vui long kiem tra du lieu va quyen admin.`,
-      );
+      setRefreshKey((prev) => prev + 1);
+      closeModal();
+      setTimeout(() => setSuccessMessage(""), 3000);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || "Có lỗi xảy ra từ máy chủ.");
+      } else {
+        setError("Có lỗi không xác định xảy ra.");
+      }
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -192,226 +166,197 @@ export default function ProductManagement() {
   return (
     <>
       <PageMeta
-        title="Quan ly san pham | Mini64 Hobby Store"
-        description="Trang quan ly san pham cho Admin"
+        title="Quản lý sản phẩm | Mini64 Hobby Store"
+        description="Trang quản lý sản phẩm Admin"
       />
-      <PageBreadcrumb pageTitle="Product Management" />
+      <PageBreadcrumb pageTitle="Quản lý sản phẩm" />
 
       <div className="space-y-6">
         <ComponentCard
-          title="Danh sach san pham"
-          desc="Dong bo du lieu san pham tu database va quan ly thao tac admin."
+          title="Danh sách sản phẩm mô hình"
+          desc="Quản lý kho hàng, giá cả và thông tin chi tiết xe mô hình."
         >
           <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Ban co the them san pham moi va bang duoi se cap nhat ngay sau khi luu.
-                </p>
-              </div>
+            <div className="flex justify-end">
               <button
-                onClick={() => {
-                  setShowAddForm((currentState) => !currentState);
-                  if (showAddForm) {
-                    resetForm();
-                  }
-                  setError("");
-                  setSuccessMessage("");
-                }}
-                className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700"
+                onClick={() => setShowModal(true)}
+                className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition"
               >
-                {showAddForm ? "Dong form" : "Them san pham"}
+                + Thêm sản phẩm mới
               </button>
             </div>
 
             {successMessage && (
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
+              <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700 border border-emerald-200">
                 {successMessage}
               </div>
             )}
 
-            {showAddForm && (
-              <form
-                onSubmit={handleSubmit}
-                className="grid gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-5 dark:border-gray-800 dark:bg-white/[0.03] md:grid-cols-2"
-              >
-                <div className="md:col-span-2">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-white/90">
-                    {editingProductId ? "Cap nhat san pham" : "Them san pham moi"}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {editingProductId
-                      ? "Chinh sua thong tin san pham va luu lai vao database."
-                      : "Dien day du thong tin de luu san pham vao database."}
-                  </p>
-                </div>
-
-                {error && (
-                  <div className="md:col-span-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
-                    {error}
+            {/* MODAL FORM */}
+            {showModal && (
+              <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+                  <div className="flex items-center justify-between border-b pb-4 mb-4 dark:border-gray-800">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                      {editingProductId
+                        ? "Chỉnh sửa sản phẩm"
+                        : "Thêm sản phẩm mô hình"}
+                    </h3>
+                    <button
+                      onClick={closeModal}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      ✕
+                    </button>
                   </div>
-                )}
 
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Ten san pham
-                  </span>
-                  <input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
+                  {error && (
+                    <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+                      {error}
+                    </div>
+                  )}
 
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Link hinh anh
-                  </span>
-                  <input
-                    name="image"
-                    value={formData.image}
-                    onChange={handleChange}
-                    required
-                    placeholder="https://..."
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Gia
-                  </span>
-                  <input
-                    name="price"
-                    type="number"
-                    min="0"
-                    value={formData.price}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Ton kho
-                  </span>
-                  <input
-                    name="stock"
-                    type="number"
-                    min="0"
-                    value={formData.stock}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Rating
-                  </span>
-                  <input
-                    name="rating"
-                    type="number"
-                    min="0"
-                    max="5"
-                    step="0.1"
-                    value={formData.rating}
-                    onChange={handleChange}
-                    required
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Danh muc
-                  </span>
-                  <select
-                    name="category"
-                    value={formData.category}
-                    onChange={handleChange}
-                    required
-                    disabled={loadingOptions}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                  <form
+                    onSubmit={handleSubmit}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
                   >
-                    <option value="">Chon danh muc</option>
-                    {categories.map((category) => (
-                      <option key={category._id} value={category._id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">
+                        Tên sản phẩm (Xe + Tỷ lệ)
+                      </label>
+                      <input
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                        placeholder="VD: Lamborghini Huracan STO 1:64"
+                      />
+                    </div>
 
-                <label className="space-y-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Thuong hieu
-                  </span>
-                  <select
-                    name="brand"
-                    value={formData.brand}
-                    onChange={handleChange}
-                    required
-                    disabled={loadingOptions}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  >
-                    <option value="">Chon thuong hieu</option>
-                    {brands.map((brand) => (
-                      <option key={brand._id} value={brand._id}>
-                        {brand.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Giá bán (VNĐ)
+                      </label>
+                      <input
+                        name="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                      />
+                    </div>
 
-                <label className="space-y-2 md:col-span-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Mo ta
-                  </span>
-                  <textarea
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    required
-                    rows={4}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-                  />
-                </label>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Số lượng tồn kho
+                      </label>
+                      <input
+                        name="stock"
+                        type="number"
+                        value={formData.stock}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                      />
+                    </div>
 
-                <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      resetForm();
-                      setShowAddForm(false);
-                    }}
-                    className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
-                  >
-                    Huy
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting || loadingOptions}
-                    className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting
-                      ? "Dang luu..."
-                      : editingProductId
-                        ? "Cap nhat san pham"
-                        : "Luu san pham"}
-                  </button>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">
+                        Link hình ảnh sản phẩm
+                      </label>
+                      <input
+                        name="image"
+                        value={formData.image}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Danh mục
+                      </label>
+                      <select
+                        name="category"
+                        value={formData.category}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                      >
+                        <option value="">Chọn danh mục</option>
+                        {categories.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Thương hiệu
+                      </label>
+                      <select
+                        name="brand"
+                        value={formData.brand}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                      >
+                        <option value="">Chọn hãng mô hình</option>
+                        {brands.map((b) => (
+                          <option key={b._id} value={b._id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">
+                        Mô tả chi tiết sản phẩm
+                      </label>
+                      <textarea
+                        name="description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        required
+                        rows={3}
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                        placeholder="Chất liệu, hãng sản xuất, tình trạng hộp..."
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 flex justify-end gap-3 mt-4">
+                      <button
+                        type="button"
+                        onClick={closeModal}
+                        className="px-5 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        Hủy
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="px-5 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        {submitting
+                          ? "Đang lưu..."
+                          : editingProductId
+                            ? "Cập nhật ngay"
+                            : "Thêm vào kho"}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-              </form>
+              </div>
             )}
 
-            <ProductTable
-              refreshKey={refreshKey}
-              onEdit={handleEditProduct}
-            />
+            <ProductTable refreshKey={refreshKey} onEdit={handleEditProduct} />
           </div>
         </ComponentCard>
       </div>

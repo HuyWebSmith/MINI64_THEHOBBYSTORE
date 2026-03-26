@@ -8,21 +8,22 @@ export default function BrandManagement() {
   return (
     <>
       <PageMeta
-        title="Quan ly thuong hieu | Mini64 Hobby Store"
-        description="Trang admin them, sua, xoa thuong hieu"
+        title="Quản lý thương hiệu | Mini64 Hobby Store"
+        description="Trang quản trị thêm, sửa, xóa thương hiệu sản phẩm"
       />
-      <PageBreadcrumb pageTitle="Brand Management" />
+      <PageBreadcrumb pageTitle="Quản lý thương hiệu" />
+
       <EntityManagementPanel
-        title="Quan ly thuong hieu"
-        description="Them, cap nhat va xoa thuong hieu de gan vao san pham."
-        entityLabel="Brand"
-        entityLabelPlural="Brands"
+        title="Quản lý hãng mô hình"
+        description="Thêm, cập nhật và xóa các hãng sản xuất mô hình (như MiniGT, BBR, Hot Wheels) để gắn vào sản phẩm."
+        entityLabel="Thương hiệu"
+        entityLabelPlural="Thương hiệu"
         fetchUrl={`${apiUrl}/api/brand/get-all`}
         createUrl={`${apiUrl}/api/brand/create`}
         updateUrlBase={`${apiUrl}/api/brand/update`}
         deleteUrlBase={`${apiUrl}/api/brand/delete`}
         mediaFieldKey="logo"
-        mediaFieldLabel="Logo"
+        mediaFieldLabel="Logo hãng"
       />
     </>
   );

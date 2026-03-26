@@ -55,19 +55,18 @@ const EntityManagementPanel = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [showModal, setShowModal] = useState(false); // Trạng thái đóng mở Modal
 
   const fetchItems = async () => {
     try {
       setLoading(true);
       setError("");
-
       const response = await axios.get(fetchUrl, {
         params: { limit: 100, page: 0 },
       });
-
       setItems(response.data?.data ?? []);
     } catch (err) {
-      setError(`Khong the tai danh sach ${entityLabelPlural.toLowerCase()} tu database.`);
+      setError(`Không thể tải danh sách ${entityLabelPlural.toLowerCase()}.`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -78,41 +77,31 @@ const EntityManagementPanel = ({
     fetchItems();
   }, [fetchUrl]);
 
-  const resetForm = () => {
+  const closeModal = () => {
+    setShowModal(false);
     setFormState(initialFormState);
     setEditingId(null);
+    setError("");
   };
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = event.target;
-    setFormState((currentState) => ({
-      ...currentState,
-      [name]: value,
-    }));
+    setFormState((prev) => ({ ...prev, [name]: value }));
   };
 
   const getAuthHeaders = () => {
     const accessToken = localStorage.getItem("access_token");
-
-    if (!accessToken) {
-      throw new Error("Ban can dang nhap bang tai khoan admin.");
-    }
-
-    return {
-      Authorization: `Bearer ${accessToken}`,
-    };
+    if (!accessToken) throw new Error("Bạn cần đăng nhập quyền admin.");
+    return { Authorization: `Bearer ${accessToken}` };
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     try {
       setSubmitting(true);
       setError("");
-      setSuccessMessage("");
-
       const payload = {
         name: formState.name,
         description: formState.description,
@@ -123,18 +112,19 @@ const EntityManagementPanel = ({
         await axios.put(`${updateUrlBase}/${editingId}`, payload, {
           headers: getAuthHeaders(),
         });
-        setSuccessMessage(`Cap nhat ${entityLabel.toLowerCase()} thanh cong.`);
+        setSuccessMessage(`Cập nhật ${entityLabel.toLowerCase()} thành công.`);
       } else {
         await axios.post(createUrl, payload, {
           headers: getAuthHeaders(),
         });
-        setSuccessMessage(`Them ${entityLabel.toLowerCase()} thanh cong.`);
+        setSuccessMessage(`Thêm ${entityLabel.toLowerCase()} thành công.`);
       }
 
-      resetForm();
+      closeModal();
       fetchItems();
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      setError(`Khong the luu ${entityLabel.toLowerCase()}. Vui long kiem tra du lieu va quyen admin.`);
+      setError(`Lỗi: Không thể lưu ${entityLabel.toLowerCase()}.`);
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -148,217 +138,200 @@ const EntityManagementPanel = ({
       description: item.description ?? "",
       media: item[mediaFieldKey] ?? "",
     });
-    setError("");
-    setSuccessMessage("");
+    setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(`Ban co chac chan muon xoa ${entityLabel.toLowerCase()} nay?`)) {
+    if (
+      !window.confirm(
+        `Bạn có chắc chắn muốn xóa ${entityLabel.toLowerCase()} này?`,
+      )
+    )
       return;
-    }
-
     try {
-      setError("");
-      setSuccessMessage("");
-
       await axios.delete(`${deleteUrlBase}/${id}`, {
         headers: getAuthHeaders(),
       });
-
-      setItems((currentItems) => currentItems.filter((item) => item._id !== id));
-
-      if (editingId === id) {
-        resetForm();
-      }
-
-      setSuccessMessage(`Da xoa ${entityLabel.toLowerCase()} thanh cong.`);
+      setItems((prev) => prev.filter((item) => item._id !== id));
+      setSuccessMessage("Xóa thành công.");
+      setTimeout(() => setSuccessMessage(""), 3000);
     } catch (err) {
-      setError(`Khong the xoa ${entityLabel.toLowerCase()}.`);
-      console.error(err);
+      setError("Không thể xóa dữ liệu.");
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-        <div className="mb-5 border-b border-gray-100 pb-5 dark:border-gray-800">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-            {title}
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {description}
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-          {error && (
-            <div className="md:col-span-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
-              {error}
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="md:col-span-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
-              {successMessage}
-            </div>
-          )}
-
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Ten {entityLabel.toLowerCase()}
-            </span>
-            <input
-              name="name"
-              value={formState.name}
-              onChange={handleChange}
-              required
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            />
-          </label>
-
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {mediaFieldLabel}
-            </span>
-            <input
-              name="media"
-              value={formState.media}
-              onChange={handleChange}
-              placeholder="https://..."
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            />
-          </label>
-
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Mo ta
-            </span>
-            <textarea
-              name="description"
-              value={formState.description}
-              onChange={handleChange}
-              rows={4}
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            />
-          </label>
-
-          <div className="md:col-span-2 flex flex-wrap justify-end gap-3">
-            <button
-              type="button"
-              onClick={resetForm}
-              className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-400 dark:border-gray-700 dark:text-gray-200"
-            >
-              Dat lai
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting
-                ? "Dang luu..."
-                : editingId
-                  ? `Cap nhat ${entityLabel.toLowerCase()}`
-                  : `Them ${entityLabel.toLowerCase()}`}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-5 dark:border-gray-800">
+      {/* Header & Button Thêm mới */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90">
-              Danh sach {entityLabelPlural.toLowerCase()}
+              {title}
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Co {items.length} {entityLabelPlural.toLowerCase()} dang duoc dong bo.
+              {description}
             </p>
           </div>
           <button
-            onClick={fetchItems}
-            className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-500 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-200"
+            onClick={() => setShowModal(true)}
+            className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 transition"
           >
-            Lam moi
+            + Thêm {entityLabel} mới
           </button>
         </div>
 
+        {successMessage && (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {successMessage}
+          </div>
+        )}
+      </div>
+
+      {/* MODAL OVERLAY */}
+      {showModal && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+            <div className="mb-5 flex items-center justify-between border-b pb-4 dark:border-gray-800">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                {editingId
+                  ? `Chỉnh sửa ${entityLabel}`
+                  : `Thêm ${entityLabel} mới`}
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-200">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">
+                  Tên {entityLabel.toLowerCase()}
+                </span>
+                <input
+                  name="name"
+                  value={formState.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full rounded-xl border border-gray-200 p-3 dark:bg-gray-800 dark:border-gray-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">
+                  {mediaFieldLabel} (Link URL)
+                </span>
+                <input
+                  name="media"
+                  value={formState.media}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="w-full rounded-xl border border-gray-200 p-3 dark:bg-gray-800 dark:border-gray-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Mô tả</span>
+                <textarea
+                  name="description"
+                  value={formState.description}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full rounded-xl border border-gray-200 p-3 dark:bg-gray-800 dark:border-gray-700"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-5 py-2.5 text-sm font-semibold border rounded-xl hover:bg-gray-50 dark:border-gray-700"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-indigo-600 text-white px-5 py-2.5 text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {submitting
+                    ? "Đang xử lý..."
+                    : editingId
+                      ? "Cập nhật dữ liệu"
+                      : "Lưu dữ liệu"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* TABLE LIST */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="mb-5 flex items-center justify-between border-b pb-5 dark:border-gray-800">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white/90">
+            Danh sách {entityLabelPlural.toLowerCase()}
+          </h3>
+        </div>
+
         {loading ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 px-6 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-            Dang tai danh sach {entityLabelPlural.toLowerCase()}...
+          <div className="py-10 text-center text-gray-500">
+            Đang tải dữ liệu...
           </div>
         ) : (
-          <div className="max-w-full overflow-x-auto">
-            <table className="w-full min-w-[780px] table-auto">
+          <div className="overflow-x-auto">
+            <table className="w-full table-auto">
               <thead>
-                <tr className="bg-gray-100 text-left dark:bg-white/[0.05]">
-                  <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                    {entityLabel}
-                  </th>
-                  <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                    {mediaFieldLabel}
-                  </th>
-                  <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                    Mo ta
-                  </th>
-                  <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                    Tao luc
-                  </th>
-                  <th className="px-4 py-4 text-right font-medium text-gray-700 dark:text-white">
-                    Thao tac
-                  </th>
+                <tr className="bg-gray-50 text-left dark:bg-white/5">
+                  <th className="px-4 py-4 font-medium">{entityLabel}</th>
+                  <th className="px-4 py-4 font-medium">{mediaFieldLabel}</th>
+                  <th className="px-4 py-4 font-medium">Mô tả</th>
+                  <th className="px-4 py-4 text-right font-medium">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item) => (
-                  <tr key={item._id}>
-                    <td className="border-b border-gray-100 px-4 py-5 dark:border-gray-800">
-                      <div>
-                        <p className="font-semibold text-gray-900 dark:text-white/90">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          ID: {item._id}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="border-b border-gray-100 px-4 py-5 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
+                  <tr
+                    key={item._id}
+                    className="border-b border-gray-100 dark:border-gray-800"
+                  >
+                    <td className="px-4 py-4 font-medium">{item.name}</td>
+                    <td className="px-4 py-4">
                       {item[mediaFieldKey] ? (
-                        <a
-                          href={item[mediaFieldKey]}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-indigo-600 hover:underline dark:text-indigo-400"
-                        >
-                          Xem file
-                        </a>
+                        <img
+                          src={item[mediaFieldKey]}
+                          className="h-10 w-10 object-contain rounded border"
+                          alt="logo"
+                        />
                       ) : (
-                        "Chua co"
+                        "Trống"
                       )}
                     </td>
-                    <td className="border-b border-gray-100 px-4 py-5 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                      {item.description || "Khong co mo ta"}
+                    <td className="px-4 py-4 text-sm text-gray-500 truncate max-w-[200px]">
+                      {item.description || "--"}
                     </td>
-                    <td className="border-b border-gray-100 px-4 py-5 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                      {item.createdAt
-                        ? new Date(item.createdAt).toLocaleDateString("vi-VN")
-                        : "--"}
-                    </td>
-                    <td className="border-b border-gray-100 px-4 py-5 dark:border-gray-800">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-600 transition hover:bg-blue-100 dark:bg-blue-950/20 dark:text-blue-300"
-                        >
-                          Sua
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item._id)}
-                          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/20 dark:text-red-300"
-                        >
-                          Xoa
-                        </button>
-                      </div>
+                    <td className="px-4 py-4 text-right space-x-2">
+                      <button
+                        onClick={() => handleEdit(item)}
+                        className="text-indigo-600 hover:underline"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        onClick={() => handleDelete(item._id)}
+                        className="text-red-500 hover:underline"
+                      >
+                        Xóa
+                      </button>
                     </td>
                   </tr>
                 ))}

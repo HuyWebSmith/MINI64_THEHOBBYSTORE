@@ -10,14 +10,16 @@ const router = express.Router();
 
 router.post(
   "/create",
-  validateProduct,
+  authMiddleware,
   adminAuthMiddleware,
+  validateProduct,
   ProductController.createProduct,
 );
 router.put(
   "/update/:id",
-  validateProductUpdate,
+  authMiddleware,
   adminAuthMiddleware,
+  validateProductUpdate,
   ProductController.updateProduct,
 );
 router.delete(
