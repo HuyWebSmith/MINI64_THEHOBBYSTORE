@@ -1,7 +1,9 @@
 import express from "express";
 import ProductController from "../controllers/ProductController.js";
-import { adminAuthMiddleware } from "../middlewares/authMiddleware.js";
-import { authMiddleware } from "../middlewares/authMiddleware.js";
+import {
+  adminAuthMiddleware,
+  authMiddleware,
+} from "../middlewares/authMiddleware.js";
 import { validateProduct } from "../validations/ProductValidation.js";
 import { validateProductUpdate } from "../validations/ProductValidation.js";
 const router = express.Router();
