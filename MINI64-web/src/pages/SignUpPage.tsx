@@ -37,6 +37,7 @@ const SignUpPage = () => {
 
     setLoading(true);
     try {
+<<<<<<< HEAD
       const response = await axios.post(`${apiUrl}/api/auth/sign-up`, {
         name: formData.name,
         email: formData.email,
@@ -44,6 +45,18 @@ const SignUpPage = () => {
         password: formData.password,
         confirmPassword: formData.confirmPassword,
       });
+=======
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/auth/sign-up`,
+        {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        },
+      );
+>>>>>>> 4c3c65fe9bc37a04c538a71bdce2c0d9b15f67d7
 
       if (response.status === 201 || response.status === 200) {
         alert("Registration successful!");
