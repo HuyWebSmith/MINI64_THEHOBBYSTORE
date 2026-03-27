@@ -74,7 +74,9 @@ class AuthService {
       await User.findByIdAndUpdate(
         checkUser.id,
         { refresh_token },
-        { new: true },
+        {
+          returnDocument: "after",
+        },
       );
 
       const { password: pass, refresh_token: rt, ...userData } = checkUser._doc;
@@ -138,7 +140,9 @@ class AuthService {
       const updatedUser = await User.findByIdAndUpdate(
         id,
         { isBlocked: isLock },
-        { new: true },
+        {
+          returnDocument: "after",
+        },
       );
 
       if (!updatedUser) {

@@ -3,6 +3,8 @@ import type { ChangeEvent, FormEvent } from "react"; // Fix lỗi Verbatim
 import { Link } from "react-router-dom";
 import axios, { isAxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
+import { useContext } from "react";
+import { UserContext } from "../context/UserContext";
 const apiUrl = import.meta.env.VITE_API_URL;
 const SignInPage = () => {
   const [formData, setFormData] = useState({
@@ -11,7 +13,7 @@ const SignInPage = () => {
   });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-
+  const { setUser } = useContext(UserContext);
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -26,6 +28,7 @@ const SignInPage = () => {
         localStorage.setItem("access_token", res.data.access_token);
 
         localStorage.setItem("user_info", JSON.stringify(res.data.data));
+        setUser(res.data.data);
         const userRole = res.data.data.role;
         if (userRole === "admin") {
           navigate("/admin");

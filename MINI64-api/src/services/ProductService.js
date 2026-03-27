@@ -21,7 +21,7 @@ class ProductService {
   async updateProduct(id, data) {
     try {
       const updatedProduct = await Product.findByIdAndUpdate(id, data, {
-        new: true,
+        returnDocument: "after",
       });
       if (!updatedProduct) {
         return { status: "ERR", message: "Product not found" };
