@@ -1,34 +1,33 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Radio, ShoppingCart, X, LogOut, User } from "lucide-react";
+import { LogOut, Menu, Radio, ShoppingCart, User, X } from "lucide-react";
 import axios from "axios";
+import { UserContext } from "../context/UserContext";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, setUser } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
 
-  const getUserNameFromStorage = () => {
+  const getUserFromStorage = () => {
     const userData = localStorage.getItem("user_info");
 
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        return user.name;
-      } catch (error) {
-        console.error("Error parsing user data:", error);
-        return null;
-      }
+    if (!userData) {
+      return null;
     }
 
-    return null;
+    try {
+      return JSON.parse(userData);
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return null;
+    }
   };
-
-  const [userName, setUserName] = useState<string | null>(getUserNameFromStorage);
 
   const fetchCartCount = async () => {
     const token = localStorage.getItem("access_token");
@@ -59,9 +58,7 @@ const Header = () => {
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -69,7 +66,7 @@ const Header = () => {
 
   useEffect(() => {
     const syncHeaderState = () => {
-      setUserName(getUserNameFromStorage());
+      setUser(getUserFromStorage());
       fetchCartCount();
     };
 
@@ -83,12 +80,12 @@ const Header = () => {
       window.removeEventListener("auth-changed", syncHeaderState);
       window.removeEventListener("cart-changed", syncHeaderState);
     };
-  }, [location.pathname]);
+  }, [location.pathname, setUser]);
 
   const handleLogout = () => {
     localStorage.removeItem("user_info");
     localStorage.removeItem("access_token");
-    setUserName(null);
+    setUser(null);
     setCartCount(0);
     setIsMenuOpen(false);
     window.dispatchEvent(new Event("auth-changed"));
@@ -97,10 +94,11 @@ const Header = () => {
   };
 
   const navLinks = [
-    { name: "Features", href: "#" },
-    { name: "Pricing", href: "#" },
-    { name: "Testimonials", href: "#" },
-    { name: "Blog", href: "#" },
+    { name: "SHOP", href: "#" },
+    { name: "CAR", href: "#" },
+    { name: "GUIDE", href: "#" },
+    { name: "BLOG", href: "#" },
+    { name: "CONTACT", href: "#" },
   ];
 
   const textColor = isScrolled ? "text-gray-800" : "text-white";
@@ -110,15 +108,15 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed w-full z-[100] transition-all duration-300 ${
+      className={`fixed z-[100] w-full transition-all duration-300 ${
         isScrolled
-          ? "bg-white shadow-md py-3"
-          : "bg-black/20 backdrop-blur-sm py-5"
+          ? "bg-white py-3 shadow-md"
+          : "bg-black/20 py-5 backdrop-blur-sm"
       }`}
     >
       <nav className="container mx-auto flex items-center justify-between px-6">
         <div className="flex items-center">
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to="/" className="group flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 transition-transform group-hover:rotate-6">
               <img
                 src="https://res.cloudinary.com/speedwares/image/upload/v1659284687/windframe-logo-main_daes7r.png"
@@ -127,29 +125,33 @@ const Header = () => {
               />
             </div>
             <span
-              className={`hidden text-xl font-bold sm:block ${isScrolled ? "text-indigo-900" : "text-white"}`}
+              className={`hidden text-xl font-bold sm:block ${
+                isScrolled ? "text-indigo-900" : "text-white"
+              }`}
             >
               MINI64
             </span>
           </Link>
         </div>
 
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden items-center space-x-8 md:flex">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
-              className={`${textColor} ${hoverColor} relative font-medium transition-colors group`}
+              className={`${textColor} ${hoverColor} group relative font-medium transition-colors`}
             >
               {link.name}
               <span
-                className={`absolute -bottom-1 left-0 h-0.5 w-0 ${isScrolled ? "bg-indigo-600" : "bg-themeYellow"} transition-all group-hover:w-full`}
+                className={`absolute -bottom-1 left-0 h-0.5 w-0 ${
+                  isScrolled ? "bg-indigo-600" : "bg-themeYellow"
+                } transition-all group-hover:w-full`}
               ></span>
             </a>
           ))}
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden items-center gap-3 md:flex">
           <Link
             to="/live"
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-semibold transition ${
@@ -178,18 +180,24 @@ const Header = () => {
             )}
           </Link>
 
-          {userName ? (
+          {user ? (
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <div
-                  className={`rounded-full p-1.5 ${isScrolled ? "bg-indigo-100 text-indigo-600" : "bg-white/20 text-white"}`}
+                  className={`rounded-full p-1.5 ${
+                    isScrolled
+                      ? "bg-indigo-100 text-indigo-600"
+                      : "bg-white/20 text-white"
+                  }`}
                 >
                   <User size={18} />
                 </div>
                 <span
-                  className={`font-semibold ${isScrolled ? "text-gray-900" : "text-white"}`}
+                  className={`font-semibold ${
+                    isScrolled ? "text-gray-900" : "text-white"
+                  }`}
                 >
-                  {userName}
+                  {user.name}
                 </span>
               </div>
               <button
@@ -207,13 +215,19 @@ const Header = () => {
             <>
               <Link
                 to="/login"
-                className={`${isScrolled ? "text-gray-900" : "text-white"} font-semibold transition-colors hover:text-indigo-600`}
+                className={`${
+                  isScrolled ? "text-gray-900" : "text-white"
+                } font-semibold transition-colors hover:text-indigo-600`}
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className={`${isScrolled ? "bg-indigo-600 text-white" : "bg-themeYellow text-black"} rounded-full px-6 py-2.5 font-semibold shadow-sm transition-all hover:opacity-90`}
+                className={`${
+                  isScrolled
+                    ? "bg-indigo-600 text-white"
+                    : "bg-themeYellow text-black"
+                } rounded-full px-6 py-2.5 font-semibold shadow-sm transition-all hover:opacity-90`}
               >
                 Sign Up Free
               </Link>
@@ -224,7 +238,9 @@ const Header = () => {
         <div className="md:hidden">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`rounded-lg p-2 transition-colors ${isScrolled ? "text-indigo-600" : "text-white"}`}
+            className={`rounded-lg p-2 transition-colors ${
+              isScrolled ? "text-indigo-600" : "text-white"
+            }`}
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -232,10 +248,10 @@ const Header = () => {
       </nav>
 
       <div
-        className={`md:hidden absolute top-full left-0 w-full border-t border-gray-100 bg-white shadow-xl transition-all duration-300 transform ${
+        className={`absolute left-0 top-full w-full transform border-t border-gray-100 bg-white shadow-xl transition-all duration-300 md:hidden ${
           isMenuOpen
-            ? "opacity-100 translate-y-0"
-            : "opacity-0 -translate-y-4 pointer-events-none"
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none -translate-y-4 opacity-0"
         }`}
       >
         <div className="flex flex-col space-y-4 p-6">
@@ -259,22 +275,22 @@ const Header = () => {
             </a>
           ))}
 
-          <div className="flex flex-col space-y-3 border-t pt-4">
-            <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-              <span className="font-semibold text-gray-800">Gio hang live</span>
-              <span className="rounded-full bg-themeYellow px-3 py-1 text-sm font-bold text-black">
-                {cartCount}
-              </span>
-            </div>
+          <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+            <span className="font-semibold text-gray-800">Gio hang live</span>
+            <span className="rounded-full bg-themeYellow px-3 py-1 text-sm font-bold text-black">
+              {cartCount}
+            </span>
+          </div>
 
-            {userName ? (
+          <div className="flex flex-col space-y-3 border-t pt-4">
+            {user ? (
               <>
                 <div className="flex items-center gap-3 py-2">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
                     <User size={20} />
                   </div>
                   <span className="text-lg font-bold text-gray-900">
-                    {userName}
+                    {user.name}
                   </span>
                 </div>
                 <button

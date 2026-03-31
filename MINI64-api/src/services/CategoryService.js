@@ -29,7 +29,7 @@ class CategoryService {
   async updateCategory(id, data) {
     try {
       const updatedCategory = await Category.findByIdAndUpdate(id, data, {
-        new: true,
+        returnDocument: "after",
       });
       if (!updatedCategory) {
         return {

@@ -118,7 +118,9 @@ class UserService {
           message: "User not found",
         };
       }
-      const updateUser = await User.findByIdAndUpdate(id, data, { new: true });
+      const updateUser = await User.findByIdAndUpdate(id, data, {
+        returnDocument: "after",
+      });
 
       return {
         status: "OK",

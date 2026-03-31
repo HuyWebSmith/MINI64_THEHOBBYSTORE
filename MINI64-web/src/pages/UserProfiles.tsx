@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import {
+  Lock,
+  Unlock,
+  AlertTriangle,
+  RotateCcw,
+  Users,
+  UserX,
+  ShieldCheck,
+} from "lucide-react";
 import PageBreadcrumb from "../components/admin_component/common/PageBreadCrumb";
 import PageMeta from "../components/admin_component/common/PageMeta";
 
@@ -11,6 +20,7 @@ interface UserRecord {
   email: string;
   phone: string;
   role: "admin" | "user";
+  isBlocked: boolean;
   createdAt: string;
 }
 
@@ -19,29 +29,24 @@ export default function UserProfiles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    userId: string;
+    userName: string;
+    currentStatus: boolean;
+  }>({ show: false, userId: "", userName: "", currentStatus: false });
+
   const fetchUsers = async () => {
     const accessToken = localStorage.getItem("access_token");
-
-    if (!accessToken) {
-      setError("Khong tim thay access token admin de tai danh sach nguoi dung.");
-      setLoading(false);
-      return;
-    }
-
+    if (!accessToken) return;
     try {
       setLoading(true);
-      setError("");
-
       const response = await axios.get(`${apiUrl}/api/user/get-all`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
-
       setUsers(response.data?.data ?? []);
     } catch (err) {
-      setError("Khong the tai danh sach nguoi dung tu database.");
-      console.error(err);
+      setError("Không thể tải danh sách người dùng.");
     } finally {
       setLoading(false);
     }
@@ -51,172 +56,189 @@ export default function UserProfiles() {
     fetchUsers();
   }, []);
 
-  const handleDelete = async (userId: string) => {
+  const handleToggleBlock = async () => {
+    const { userId, currentStatus } = confirmModal;
     const accessToken = localStorage.getItem("access_token");
-
-    if (!accessToken) {
-      setError("Ban can dang nhap tai khoan admin de xoa nguoi dung.");
-      return;
-    }
-
-    if (!window.confirm("Ban co chac chan muon xoa nguoi dung nay?")) {
-      return;
-    }
-
     try {
-      await axios.delete(`${apiUrl}/api/user/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      setUsers((currentUsers) =>
-        currentUsers.filter((user) => user._id !== userId),
+      await axios.patch(
+        `${apiUrl}/api/auth/lock-user/${userId}`,
+        { isBlocked: !currentStatus },
+        { headers: { Authorization: `Bearer ${accessToken}` } },
       );
-    } catch (err) {
-      setError("Xoa nguoi dung that bai. Vui long kiem tra quyen admin.");
-      console.error(err);
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === userId ? { ...u, isBlocked: !currentStatus } : u,
+        ),
+      );
+      setConfirmModal({ ...confirmModal, show: false });
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Thao tác thất bại!");
     }
   };
 
   return (
     <>
       <PageMeta
-        title="Quan ly nguoi dung | Mini64 Hobby Store"
-        description="Trang admin dong bo danh sach nguoi dung tu MongoDB"
+        title="Quản lý người dùng | Mini64"
+        description="Quản lý thành viên"
       />
-      <PageBreadcrumb pageTitle="User Management" />
+      <PageBreadcrumb pageTitle="Quản lý người dùng" />
 
       <div className="space-y-6">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:p-6">
-          <div className="mb-5 flex flex-col gap-4 border-b border-gray-100 pb-5 dark:border-gray-800 md:flex-row md:items-center md:justify-between">
+        {/* --- KHỐI THỐNG KÊ NHANH --- */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] flex items-center gap-4">
+            <div className="p-3 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 rounded-xl">
+              <Users size={24} />
+            </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-                Danh sach nguoi dung
-              </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Dong bo tai khoan tu database de admin theo doi va quan ly.
+              <p className="text-sm text-gray-500">Tổng thành viên</p>
+              <p className="text-xl font-bold">{users.length}</p>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] flex items-center gap-4">
+            <div className="p-3 bg-red-50 dark:bg-red-500/10 text-red-600 rounded-xl">
+              <UserX size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Đang bị khóa</p>
+              <p className="text-xl font-bold">
+                {users.filter((u) => u.isBlocked).length}
               </p>
             </div>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] flex items-center gap-4">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 rounded-xl">
+              <ShieldCheck size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Quản trị viên</p>
+              <p className="text-xl font-bold">
+                {users.filter((u) => u.role === "admin").length}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+              Danh sách chi tiết
+            </h3>
             <button
               onClick={fetchUsers}
-              className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-indigo-500 hover:text-indigo-600 dark:border-gray-700 dark:text-gray-200"
+              className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 px-3 py-2 rounded-lg transition"
             >
-              Lam moi
+              <RotateCcw size={16} className={loading ? "animate-spin" : ""} />{" "}
+              Làm mới
             </button>
           </div>
 
-          {loading ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 px-6 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-              Dang dong bo nguoi dung tu database...
-            </div>
-          ) : error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300">
-              {error}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-white/[0.03]">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Tong nguoi dung
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
-                    {users.length}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-white/[0.03]">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Tai khoan admin
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
-                    {users.filter((user) => user.role === "admin").length}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-gray-50 px-4 py-4 dark:bg-white/[0.03]">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Khach hang
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-white">
-                    {users.filter((user) => user.role === "user").length}
-                  </p>
-                </div>
-              </div>
-
-              <div className="max-w-full overflow-x-auto">
-                <table className="w-full min-w-[840px] table-auto">
-                  <thead>
-                    <tr className="bg-gray-100 text-left dark:bg-white/[0.05]">
-                      <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                        Nguoi dung
-                      </th>
-                      <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                        Email
-                      </th>
-                      <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                        So dien thoai
-                      </th>
-                      <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                        Vai tro
-                      </th>
-                      <th className="px-4 py-4 font-medium text-gray-700 dark:text-white">
-                        Tao luc
-                      </th>
-                      <th className="px-4 py-4 text-right font-medium text-gray-700 dark:text-white">
-                        Thao tac
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((user) => (
-                      <tr key={user._id}>
-                        <td className="border-b border-gray-100 px-4 py-5 dark:border-gray-800">
-                          <div>
-                            <p className="font-semibold text-gray-900 dark:text-white/90">
-                              {user.name}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              ID: {user._id}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="border-b border-gray-100 px-4 py-5 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                          {user.email}
-                        </td>
-                        <td className="border-b border-gray-100 px-4 py-5 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                          {user.phone}
-                        </td>
-                        <td className="border-b border-gray-100 px-4 py-5 dark:border-gray-800">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              user.role === "admin"
-                                ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-300"
-                                : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
-                            }`}
-                          >
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="border-b border-gray-100 px-4 py-5 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                          {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-                        </td>
-                        <td className="border-b border-gray-100 px-4 py-5 text-right dark:border-gray-800">
-                          <button
-                            onClick={() => handleDelete(user._id)}
-                            className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/20 dark:text-red-300"
-                          >
-                            Xoa
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left bg-gray-50 dark:bg-white/5 border-b dark:border-gray-800">
+                  <th className="p-4 font-semibold text-sm">Thành viên</th>
+                  <th className="p-4 font-semibold text-sm">Email</th>
+                  <th className="p-4 font-semibold text-sm">Vai trò</th>
+                  <th className="p-4 font-semibold text-sm">Trạng thái</th>
+                  <th className="p-4 font-semibold text-sm text-right">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr
+                    key={user._id}
+                    className={`border-b dark:border-gray-800 ${user.isBlocked ? "opacity-50 bg-gray-50/30" : ""}`}
+                  >
+                    <td className="p-4 font-medium">{user.name}</td>
+                    <td className="p-4 text-sm text-gray-500">{user.email}</td>
+                    <td className="p-4 text-sm font-bold uppercase text-indigo-500">
+                      {user.role}
+                    </td>
+                    <td className="p-4">
+                      {user.isBlocked ? (
+                        <span className="inline-flex items-center gap-1.5 text-red-600 text-xs font-medium bg-red-50 px-2 py-1 rounded">
+                          <Lock size={12} /> Khóa
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-600 text-xs font-medium bg-emerald-50 px-2 py-1 rounded">
+                          <Unlock size={12} /> Hoạt động
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 text-right">
+                      {user.role === "admin" ? (
+                        <span className="text-gray-400 text-xs italic">
+                          Bảo vệ
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() =>
+                            setConfirmModal({
+                              show: true,
+                              userId: user._id,
+                              userName: user.name,
+                              currentStatus: user.isBlocked,
+                            })
+                          }
+                          className={`p-2 rounded-xl transition-all ${user.isBlocked ? "bg-emerald-500 text-white" : "bg-red-500 text-white"}`}
+                        >
+                          {user.isBlocked ? (
+                            <Unlock size={18} />
+                          ) : (
+                            <Lock size={18} />
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
+
+      {/* MODAL XÁC NHẬN */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-md">
+          <div className="bg-white dark:bg-gray-900 w-full max-w-sm rounded-[2rem] p-8 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div
+                className={`p-4 rounded-full mb-5 ${confirmModal.currentStatus ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"}`}
+              >
+                <AlertTriangle size={40} />
+              </div>
+              <h4 className="text-2xl font-black mb-3 text-gray-900 dark:text-white">
+                Xác nhận
+              </h4>
+              <p className="text-gray-500 text-sm mb-8 italic">
+                Bạn muốn {confirmModal.currentStatus ? "MỞ" : "KHÓA"} tài khoản{" "}
+                {confirmModal.userName}?
+              </p>
+              <div className="flex w-full gap-4">
+                <button
+                  onClick={() =>
+                    setConfirmModal({ ...confirmModal, show: false })
+                  }
+                  className="flex-1 py-3 bg-gray-100 rounded-xl font-bold"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleToggleBlock}
+                  className={`flex-1 py-3 rounded-xl font-bold text-white ${confirmModal.currentStatus ? "bg-emerald-600" : "bg-red-600"}`}
+                >
+                  Đồng ý
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

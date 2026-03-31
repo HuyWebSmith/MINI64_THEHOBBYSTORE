@@ -4,19 +4,22 @@ import {
   adminAuthMiddleware,
   authMiddleware,
 } from "../middlewares/authMiddleware.js";
-
+import { validateProduct } from "../validations/ProductValidation.js";
+import { validateProductUpdate } from "../validations/ProductValidation.js";
 const router = express.Router();
 
 router.post(
   "/create",
   authMiddleware,
   adminAuthMiddleware,
+  validateProduct,
   ProductController.createProduct,
 );
 router.put(
   "/update/:id",
   authMiddleware,
   adminAuthMiddleware,
+  validateProductUpdate,
   ProductController.updateProduct,
 );
 router.delete(

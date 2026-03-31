@@ -1,7 +1,9 @@
-import { useState } from "react";
-import type { ChangeEvent, FormEvent } from "react"; // Fix lỗi Verbatim
+import { useContext, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios, { isAxiosError } from "axios";
+import { UserContext } from "../context/UserContext";
+
 const apiUrl = import.meta.env.VITE_API_URL;
 
 const SignInPage = () => {
@@ -11,6 +13,7 @@ const SignInPage = () => {
   });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const { setUser } = useContext(UserContext);
   const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +31,7 @@ const SignInPage = () => {
       if (res.status === 200) {
         localStorage.setItem("access_token", res.data.access_token);
         localStorage.setItem("user_info", JSON.stringify(res.data.data));
-
+        setUser(res.data.data);
         window.dispatchEvent(new Event("auth-changed"));
 
         const userRole = res.data.data.role;
@@ -48,7 +51,7 @@ const SignInPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="flex min-h-screen flex-col justify-center bg-gray-100 py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
@@ -65,9 +68,9 @@ const SignInPage = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white px-4 py-8 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="mb-4 text-red-500 text-center text-sm">{error}</div>
+            <div className="mb-4 text-center text-sm text-red-500">{error}</div>
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
@@ -84,7 +87,7 @@ const SignInPage = () => {
                 type="email"
                 required
                 onChange={handleChange}
-                className="mt-1 appearance-none rounded-md block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
             </div>
 
@@ -101,14 +104,14 @@ const SignInPage = () => {
                 type="password"
                 required
                 onChange={handleChange}
-                className="mt-1 appearance-none rounded-md block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                className="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none"
+              className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
