@@ -368,66 +368,75 @@ const LivePage = () => {
           {renderRecentEvents()}
         </div>
       ) : (
-        <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[1.6fr_1fr]">
-          <div className="space-y-6">
-            <div className="overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-[#1f113c] via-[#0a0f2d] to-black shadow-2xl">
-              <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-200">
-                    <Radio size={16} />
-                    Dang live
-                  </span>
-                  <span className="text-sm text-white/60">
-                    Xem 100ms tren web va mua ngay khi streamer dang gioi thieu san pham
-                  </span>
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="overflow-hidden rounded-[36px] border border-white/10 bg-gradient-to-br from-[#17132d] via-[#0f1324] to-[#05070f] shadow-2xl">
+            <div className="flex flex-col gap-4 border-b border-white/10 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-200">
+                  <Radio size={16} />
+                  Dang live
+                </span>
+                <span className="max-w-2xl text-sm text-white/60">
+                  Khung livestream duoc uu tien lon nhat, san pham ghim va gio
+                  hang dat o vung phu de nguoi xem tap trung vao video.
+                </span>
+              </div>
+              <Link
+                to="/"
+                className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10"
+              >
+                Ve trang chu
+              </Link>
+            </div>
+
+            <div className="grid gap-6 p-6 xl:grid-cols-[1.85fr_0.9fr]">
+              <div className="space-y-6">
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.04] p-6">
+                  <p className="text-sm uppercase tracking-[0.35em] text-red-300">
+                    Live Shopping
+                  </p>
+                  <h1 className="mt-4 text-4xl font-black leading-tight text-white md:text-5xl">
+                    {liveSession.title}
+                  </h1>
+                  <p className="mt-4 max-w-3xl text-base leading-8 text-white/68">
+                    {liveSession.description || "Buoi livestream dang trung bay cac san pham noi bat trong cua hang."}
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-3 text-sm text-white/58">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                      Host: {liveSession.hostUser?.name || "Admin MINI64"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                      Provider: {liveSession.streamProvider || "100ms"}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                      {liveSession.products.length} san pham trong buoi live
+                    </span>
+                  </div>
                 </div>
-                <Link
-                  to="/"
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/10"
-                >
-                  Ve trang chu
-                </Link>
+
+                <LiveStreamEmbed
+                  roomLink={liveViewerRoomLink}
+                  title="Xem livestream tren website"
+                  description="Khung livestream la trung tam cua trang. Join live va dieu huong trong 100ms se de thao tac hon nhieu khi video duoc mo rong."
+                  emptyMessage="Buoi live nay chua co viewer room link 100ms. Vao admin/live de gan host room link va viewer room link."
+                  frameClassName="h-[560px] md:h-[680px] xl:h-[780px]"
+                  overlayHint="San pham dang ghim tren livestream"
+                  overlayProduct={liveSession.featuredProduct || null}
+                  overlayBusy={
+                    activeCartAction === liveSession.featuredProduct?._id
+                  }
+                  overlayActionLabel="Mua ngay tren live"
+                  onOverlayAction={
+                    liveSession.featuredProduct
+                      ? () => addToCart(liveSession.featuredProduct!._id)
+                      : undefined
+                  }
+                />
               </div>
 
-              <div className="grid gap-6 p-6 lg:grid-cols-[1.4fr_1fr]">
-                <div className="space-y-6 rounded-[28px] bg-black/40 p-8">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-red-300">
-                      LIVE SHOPPING
-                    </p>
-                    <h1 className="mt-4 text-4xl font-black leading-tight text-white">
-                      {liveSession.title}
-                    </h1>
-                    <p className="mt-4 max-w-xl text-base text-white/70">
-                      {liveSession.description || "Buoi livestream dang trung bay cac san pham noi bat trong cua hang."}
-                    </p>
-                    <p className="mt-3 text-sm text-white/55">
-                      Host: {liveSession.hostUser?.name || "Admin MINI64"} • Provider:{" "}
-                      {liveSession.streamProvider || "100ms"}
-                    </p>
-                  </div>
-
-                  <LiveStreamEmbed
-                    roomLink={liveViewerRoomLink}
-                    title="Xem livestream tren website"
-                    description="Viewer vao truc tiep phong 100ms ngay trong web. Neu ban muon trai nghiem day du hon, ban van co the mo phong o tab rieng."
-                    emptyMessage="Buoi live nay chua co viewer room link 100ms. Vao admin/live de gan host room link va viewer room link."
-                    overlayHint="San pham dang ghim tren livestream"
-                    overlayProduct={liveSession.featuredProduct || null}
-                    overlayBusy={
-                      activeCartAction === liveSession.featuredProduct?._id
-                    }
-                    overlayActionLabel="Mua ngay tren live"
-                    onOverlayAction={
-                      liveSession.featuredProduct
-                        ? () => addToCart(liveSession.featuredProduct!._id)
-                        : undefined
-                    }
-                  />
-                </div>
-
-                <div className="rounded-[28px] border border-themeYellow/20 bg-themeYellow/10 p-6">
-                  <p className="text-sm uppercase tracking-[0.25em] text-themeYellow">
+              <div className="space-y-6">
+                <div className="rounded-[30px] border border-themeYellow/20 bg-themeYellow/10 p-6">
+                  <p className="text-sm uppercase tracking-[0.28em] text-themeYellow">
                     San pham dang ghim
                   </p>
                   {liveSession.featuredProduct ? (
@@ -435,18 +444,23 @@ const LivePage = () => {
                       <img
                         src={liveSession.featuredProduct.image}
                         alt={liveSession.featuredProduct.name}
-                        className="h-56 w-full rounded-[24px] object-cover"
+                        className="h-64 w-full rounded-[24px] object-cover"
                       />
                       <div>
-                        <h2 className="text-2xl font-bold text-white">
+                        <h2 className="text-2xl font-bold leading-tight text-white">
                           {liveSession.featuredProduct.name}
                         </h2>
-                        <p className="mt-2 text-lg font-semibold text-themeYellow">
+                        <p className="mt-3 text-xl font-semibold text-themeYellow">
                           {liveSession.featuredProduct.price.toLocaleString("vi-VN")}đ
                         </p>
-                        <p className="mt-2 text-sm text-white/70">
-                          Ton kho: {liveSession.featuredProduct.stock}
-                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2 text-sm text-white/70">
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                            Ton kho: {liveSession.featuredProduct.stock}
+                          </span>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                            Rating: {liveSession.featuredProduct.rating.toFixed(1)}
+                          </span>
+                        </div>
                       </div>
                       <button
                         onClick={() => addToCart(liveSession.featuredProduct!._id)}
@@ -465,9 +479,18 @@ const LivePage = () => {
                     </div>
                   )}
                 </div>
+
+                {!liveViewerRoomLink && (
+                  <div className="rounded-[28px] border border-amber-400/20 bg-amber-500/10 px-5 py-4 text-sm text-amber-100">
+                    Chua co room link 100ms cho viewer. Admin can cap nhat link
+                    truoc khi user co the xem live truc tiep tren website.
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
+          <div className="grid gap-6 xl:grid-cols-[1.15fr_0.95fr]">
             <div className="rounded-[32px] border border-white/10 bg-white/5 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -489,14 +512,7 @@ const LivePage = () => {
                 </div>
               )}
 
-              {!liveViewerRoomLink && (
-                <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                  Chua co room link 100ms cho viewer. Admin can cap nhat link truoc
-                  khi user co the xem live truc tiep tren website.
-                </div>
-              )}
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {liveSession.products.map((product) => (
                   <div
                     key={product._id}
@@ -530,99 +546,99 @@ const LivePage = () => {
               </div>
             </div>
 
-            {renderRecentEvents()}
-          </div>
+            <div className="rounded-[32px] border border-white/10 bg-white/5 p-6">
+              <p className="text-sm uppercase tracking-[0.25em] text-themeYellow">
+                Gio hang live
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                {accessToken ? "San pham vua them trong khi xem live" : "Dang nhap de mua ngay"}
+              </h2>
 
-          <div className="rounded-[32px] border border-white/10 bg-white/5 p-6">
-            <p className="text-sm uppercase tracking-[0.25em] text-themeYellow">
-              Gio hang live
-            </p>
-            <h2 className="mt-2 text-2xl font-bold text-white">
-              {accessToken ? "San pham vua them trong khi xem live" : "Dang nhap de mua ngay"}
-            </h2>
-
-            {!accessToken ? (
-              <div className="mt-6 rounded-[24px] border border-dashed border-white/15 px-5 py-6 text-sm text-white/70">
-                <p>Ban can dang nhap de them san pham vao gio hang live.</p>
-                <Link
-                  to="/login"
-                  className="mt-4 inline-flex rounded-full bg-themeYellow px-4 py-2 font-semibold text-black"
-                >
-                  Di den dang nhap
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-6 space-y-4">
-                <div className="rounded-[24px] bg-black/30 p-5">
-                  <div className="flex items-center justify-between text-sm text-white/60">
-                    <span>Tong so san pham</span>
-                    <span>{totalItems}</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between text-lg font-bold text-white">
-                    <span>Tam tinh</span>
-                    <span>{totalPrice.toLocaleString("vi-VN")}đ</span>
-                  </div>
+              {!accessToken ? (
+                <div className="mt-6 rounded-[24px] border border-dashed border-white/15 px-5 py-6 text-sm text-white/70">
+                  <p>Ban can dang nhap de them san pham vao gio hang live.</p>
+                  <Link
+                    to="/login"
+                    className="mt-4 inline-flex rounded-full bg-themeYellow px-4 py-2 font-semibold text-black"
+                  >
+                    Di den dang nhap
+                  </Link>
                 </div>
+              ) : (
+                <div className="mt-6 space-y-4">
+                  <div className="rounded-[24px] bg-black/30 p-5">
+                    <div className="flex items-center justify-between text-sm text-white/60">
+                      <span>Tong so san pham</span>
+                      <span>{totalItems}</span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-lg font-bold text-white">
+                      <span>Tam tinh</span>
+                      <span>{totalPrice.toLocaleString("vi-VN")}đ</span>
+                    </div>
+                  </div>
 
-                {cart?.items?.length ? (
-                  cart.items.map((item) => (
-                    <div
-                      key={item._id}
-                      className="rounded-[24px] border border-white/10 bg-black/20 p-4"
-                    >
-                      <div className="flex gap-3">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="h-16 w-16 rounded-2xl object-cover"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold text-white">
-                            {item.name}
-                          </p>
-                          <p className="mt-1 text-sm text-white/60">
-                            {item.priceAtAdd.toLocaleString("vi-VN")}đ
-                          </p>
-                          <div className="mt-3 flex items-center gap-2">
-                            <button
-                              onClick={() =>
-                                updateCartItem(item._id, item.quantity - 1)
-                              }
-                              className="h-8 w-8 rounded-full border border-white/10 text-white"
-                            >
-                              -
-                            </button>
-                            <span className="min-w-8 text-center text-sm font-semibold text-white">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() =>
-                                updateCartItem(item._id, item.quantity + 1)
-                              }
-                              className="h-8 w-8 rounded-full border border-white/10 text-white"
-                            >
-                              +
-                            </button>
-                            <button
-                              onClick={() => removeCartItem(item._id)}
-                              className="ml-auto rounded-full border border-red-400/30 px-3 py-1 text-xs font-semibold text-red-200"
-                            >
-                              Xoa
-                            </button>
+                  {cart?.items?.length ? (
+                    cart.items.map((item) => (
+                      <div
+                        key={item._id}
+                        className="rounded-[24px] border border-white/10 bg-black/20 p-4"
+                      >
+                        <div className="flex gap-3">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-16 w-16 rounded-2xl object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold text-white">
+                              {item.name}
+                            </p>
+                            <p className="mt-1 text-sm text-white/60">
+                              {item.priceAtAdd.toLocaleString("vi-VN")}đ
+                            </p>
+                            <div className="mt-3 flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  updateCartItem(item._id, item.quantity - 1)
+                                }
+                                className="h-8 w-8 rounded-full border border-white/10 text-white"
+                              >
+                                -
+                              </button>
+                              <span className="min-w-8 text-center text-sm font-semibold text-white">
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() =>
+                                  updateCartItem(item._id, item.quantity + 1)
+                                }
+                                className="h-8 w-8 rounded-full border border-white/10 text-white"
+                              >
+                                +
+                              </button>
+                              <button
+                                onClick={() => removeCartItem(item._id)}
+                                className="ml-auto rounded-full border border-red-400/30 px-3 py-1 text-xs font-semibold text-red-200"
+                              >
+                                Xoa
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[24px] border border-dashed border-white/15 px-5 py-6 text-sm text-white/60">
+                      Gio hang cua ban dang trong. Thu bam "Them vao gio" o san
+                      pham trong buoi live.
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-[24px] border border-dashed border-white/15 px-5 py-6 text-sm text-white/60">
-                    Gio hang cua ban dang trong. Thu bam "Them vao gio" o san
-                    pham trong buoi live.
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
+          {renderRecentEvents()}
         </div>
       )}
     </div>

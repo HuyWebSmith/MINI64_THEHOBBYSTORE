@@ -1,6 +1,7 @@
 interface LiveStreamEmbedProps {
   description: string;
   emptyMessage: string;
+  frameClassName?: string;
   overlayActionLabel?: string;
   overlayBusy?: boolean;
   overlayHint?: string;
@@ -19,6 +20,7 @@ interface LiveStreamEmbedProps {
 const LiveStreamEmbed = ({
   description,
   emptyMessage,
+  frameClassName = "h-[560px] lg:h-[640px]",
   overlayActionLabel = "Them vao gio",
   overlayBusy = false,
   overlayHint = "San pham dang ghim",
@@ -65,7 +67,7 @@ const LiveStreamEmbed = ({
           key={roomLink}
           src={roomLink}
           title={title}
-          className="h-[560px] w-full bg-black"
+          className={`${frameClassName} w-full bg-black`}
           allow="camera; microphone; fullscreen; display-capture; autoplay"
           referrerPolicy="strict-origin-when-cross-origin"
         />

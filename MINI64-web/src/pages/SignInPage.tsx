@@ -1,12 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react"; // Fix lỗi Verbatim
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios, { isAxiosError } from "axios";
-<<<<<<< HEAD
-import { useNavigate } from "react-router-dom";
-=======
->>>>>>> 4c3c65fe9bc37a04c538a71bdce2c0d9b15f67d7
 const apiUrl = import.meta.env.VITE_API_URL;
+
 const SignInPage = () => {
   const [formData, setFormData] = useState({
     email: "",
@@ -14,43 +11,32 @@ const SignInPage = () => {
   });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const navigate = useNavigate();
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-<<<<<<< HEAD
-  const navigate = useNavigate();
-=======
 
->>>>>>> 4c3c65fe9bc37a04c538a71bdce2c0d9b15f67d7
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-<<<<<<< HEAD
       const res = await axios.post(`${apiUrl}/api/auth/sign-in`, formData);
-=======
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/auth/sign-in`,
-        formData,
-      );
->>>>>>> 4c3c65fe9bc37a04c538a71bdce2c0d9b15f67d7
+
       if (res.status === 200) {
         localStorage.setItem("access_token", res.data.access_token);
-
         localStorage.setItem("user_info", JSON.stringify(res.data.data));
-<<<<<<< HEAD
+
+        window.dispatchEvent(new Event("auth-changed"));
+
         const userRole = res.data.data.role;
         if (userRole === "admin") {
           navigate("/admin");
         } else {
           navigate("/");
         }
-=======
-
-        window.location.href = "/";
->>>>>>> 4c3c65fe9bc37a04c538a71bdce2c0d9b15f67d7
       }
     } catch (err) {
       if (isAxiosError(err)) {
