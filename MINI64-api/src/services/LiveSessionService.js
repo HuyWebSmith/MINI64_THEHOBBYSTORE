@@ -254,6 +254,89 @@ class LiveSessionService {
       };
     }
   }
+
+  async addProductToSession(id, productId) {
+    try {
+      if (!productId) {
+        return {
+          status: "ERR",
+          message: "PRODUCT ID IS REQUIRED",
+        };
+      }
+
+      const [liveSession, productExists] = await Promise.all([
+        LiveSession.findById(id),
+        Product.findById(productId),
+      ]);
+
+      if (!liveSession) {
+        return {
+          status: "ERR",
+          message: "LIVE SESSION NOT FOUND",
+        };
+      }
+
+      if (!productExists) {
+        return {
+          status: "ERR",
+          message: "PRODUCT NOT FOUND",
+        };
+      }
+
+      const hasProduct = liveSession.products.some(
+        (product) => product.toString() === productId,
+      );
+
+      if (!hasProduct) {
+        liveSession.products.push(productId);
+        await liveSession.save();
+      }
+
+      return this.getLiveSessionById(id);
+    } catch (error) {
+      return {
+        status: "ERR",
+        message: error.message,
+      };
+    }
+  }
+
+  async removeProductFromSession(id, productId) {
+    try {
+      if (!productId) {
+        return {
+          status: "ERR",
+          message: "PRODUCT ID IS REQUIRED",
+        };
+      }
+
+      const liveSession = await LiveSession.findById(id);
+
+      if (!liveSession) {
+        return {
+          status: "ERR",
+          message: "LIVE SESSION NOT FOUND",
+        };
+      }
+
+      liveSession.products = liveSession.products.filter(
+        (product) => product.toString() !== productId,
+      );
+
+      if (liveSession.featuredProduct?.toString() === productId) {
+        liveSession.featuredProduct = null;
+      }
+
+      await liveSession.save();
+
+      return this.getLiveSessionById(id);
+    } catch (error) {
+      return {
+        status: "ERR",
+        message: error.message,
+      };
+    }
+  }
 }
 
 export default new LiveSessionService();

@@ -39,5 +39,17 @@ router.post(
   adminAuthMiddleware,
   LiveSessionController.pinProduct,
 );
+router.post(
+  "/add-product/:id",
+  authMiddleware,
+  adminAuthMiddleware,
+  LiveSessionController.addProductToSession,
+);
+router.post(
+  "/remove-product/:id",
+  authMiddleware,
+  adminAuthMiddleware,
+  LiveSessionController.removeProductFromSession,
+);
 
 export default router;

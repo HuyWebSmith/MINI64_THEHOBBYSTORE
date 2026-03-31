@@ -50,6 +50,9 @@ const LiveManagement = () => {
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [activeSessionAction, setActiveSessionAction] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -184,19 +187,42 @@ const LiveManagement = () => {
   };
 
   const updateLiveSession = async (
-    action: "start" | "end" | "pin",
+    action: "start" | "end" | "pin" | "add" | "remove",
     sessionId: string,
     productId?: string,
   ) => {
     try {
       setError("");
       setSuccessMessage("");
+      setActiveSessionAction(
+        productId ? `${action}-${sessionId}-${productId}` : `${action}-${sessionId}`,
+      );
 
       if (action === "pin") {
         await axios.post(
           `${apiUrl}/api/live-session/pin-product/${sessionId}`,
           {
             productId: productId || null,
+          },
+          {
+            headers: getAuthHeaders(),
+          },
+        );
+      } else if (action === "add") {
+        await axios.post(
+          `${apiUrl}/api/live-session/add-product/${sessionId}`,
+          {
+            productId,
+          },
+          {
+            headers: getAuthHeaders(),
+          },
+        );
+      } else if (action === "remove") {
+        await axios.post(
+          `${apiUrl}/api/live-session/remove-product/${sessionId}`,
+          {
+            productId,
           },
           {
             headers: getAuthHeaders(),
@@ -225,6 +251,8 @@ const LiveManagement = () => {
         setError("Khong the cap nhat livestream.");
       }
       console.error(err);
+    } finally {
+      setActiveSessionAction(null);
     }
   };
 
@@ -549,15 +577,127 @@ const LiveManagement = () => {
                             onClick={() =>
                               updateLiveSession("pin", session._id, product._id)
                             }
+                            disabled={
+                              activeSessionAction ===
+                              `pin-${session._id}-${product._id}`
+                            }
                             className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
                           >
-                            {session.featuredProduct?._id === product._id
-                              ? "Dang ghim"
-                              : "Ghim san pham"}
+                            {activeSessionAction ===
+                            `pin-${session._id}-${product._id}`
+                              ? "Dang cap nhat..."
+                              : session.featuredProduct?._id === product._id
+                                ? "Dang ghim"
+                                : "Ghim san pham"}
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateLiveSession(
+                                "remove",
+                                session._id,
+                                product._id,
+                              )
+                            }
+                            disabled={
+                              activeSessionAction ===
+                              `remove-${session._id}-${product._id}`
+                            }
+                            className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 transition hover:border-red-400 dark:border-red-900/40 dark:text-red-300"
+                          >
+                            {activeSessionAction ===
+                            `remove-${session._id}-${product._id}`
+                              ? "Dang xoa..."
+                              : "Xoa khoi live"}
                           </button>
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-dashed border-gray-200 p-4 dark:border-gray-800">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white/90">
+                          Them san pham trong luc dang livestream
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          Ban co the them san pham moi vao session hien tai ma
+                          khong can tao lai buoi live.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600 dark:bg-white/10 dark:text-gray-300">
+                        {
+                          products.filter(
+                            (product) =>
+                              !session.products.some(
+                                (sessionProduct) =>
+                                  sessionProduct._id === product._id,
+                              ),
+                          ).length
+                        }{" "}
+                        san pham con lai
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {products
+                        .filter(
+                          (product) =>
+                            !session.products.some(
+                              (sessionProduct) =>
+                                sessionProduct._id === product._id,
+                            ),
+                        )
+                        .map((product) => (
+                          <div
+                            key={`${session._id}-${product._id}`}
+                            className="rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="h-16 w-16 rounded-xl object-cover"
+                              />
+                              <div className="min-w-0">
+                                <p className="truncate font-semibold text-gray-900 dark:text-white/90">
+                                  {product.name}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {product.price.toLocaleString("vi-VN")}đ
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() =>
+                                updateLiveSession("add", session._id, product._id)
+                              }
+                              disabled={
+                                activeSessionAction ===
+                                `add-${session._id}-${product._id}`
+                              }
+                              className="mt-3 w-full rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {activeSessionAction ===
+                              `add-${session._id}-${product._id}`
+                                ? "Dang them..."
+                                : "Them vao live"}
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+
+                    {!products.some(
+                      (product) =>
+                        !session.products.some(
+                          (sessionProduct) =>
+                            sessionProduct._id === product._id,
+                        ),
+                    ) && (
+                      <div className="mt-4 rounded-2xl bg-gray-50 px-4 py-4 text-sm text-gray-500 dark:bg-white/[0.03] dark:text-gray-400">
+                        Tat ca san pham hien co da nam trong buoi livestream nay.
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -128,6 +128,46 @@ class LiveSessionController {
       });
     }
   }
+
+  async addProductToSession(req, res) {
+    try {
+      const response = await LiveSessionService.addProductToSession(
+        req.params.id,
+        req.body.productId,
+      );
+
+      if (response.status === "ERR") {
+        return res.status(StatusCodes.BAD_REQUEST).json(response);
+      }
+
+      return res.status(StatusCodes.OK).json(response);
+    } catch (error) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "ERR",
+        message: error.message,
+      });
+    }
+  }
+
+  async removeProductFromSession(req, res) {
+    try {
+      const response = await LiveSessionService.removeProductFromSession(
+        req.params.id,
+        req.body.productId,
+      );
+
+      if (response.status === "ERR") {
+        return res.status(StatusCodes.BAD_REQUEST).json(response);
+      }
+
+      return res.status(StatusCodes.OK).json(response);
+    } catch (error) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "ERR",
+        message: error.message,
+      });
+    }
+  }
 }
 
 export default new LiveSessionController();

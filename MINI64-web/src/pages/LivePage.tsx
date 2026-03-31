@@ -10,6 +10,7 @@ import {
 } from "../utils/liveStream";
 
 const apiUrl = import.meta.env.VITE_API_URL;
+const LIVE_FEED_REFRESH_MS = 4000;
 
 interface ProductRecord {
   _id: string;
@@ -142,6 +143,26 @@ const LivePage = () => {
 
   useEffect(() => {
     fetchPageData();
+  }, []);
+
+  useEffect(() => {
+    const refreshLiveFeed = () => {
+      if (document.visibilityState === "visible") {
+        fetchLiveFeed();
+      }
+    };
+
+    const intervalId = window.setInterval(
+      refreshLiveFeed,
+      LIVE_FEED_REFRESH_MS,
+    );
+
+    document.addEventListener("visibilitychange", refreshLiveFeed);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshLiveFeed);
+    };
   }, []);
 
   const addToCart = async (productId: string) => {
