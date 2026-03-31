@@ -35,6 +35,8 @@ import ProtectedRoute from "./components/admin_component/auth/ProtectedRoute";
 import ProductManagement from "./pages/ProductManagementPage/ProductManagement";
 import BrandManagement from "./pages/BrandManagementPage/BrandManagement";
 import CategoryManagement from "./pages/CategoryManagementPage/CategoryManagement";
+import LiveManagement from "./pages/LiveManagementPage/LiveManagement";
+import LivePage from "./pages/LivePage";
 function App() {
   return (
     <Router>
@@ -53,6 +55,7 @@ function App() {
           }
         >
           <Route path="/" element={<Home />} />
+          <Route path="/live" element={<LivePage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
@@ -64,6 +67,7 @@ function App() {
           <Route path="/admin" element={<AppLayout />}>
             <Route index element={<Blank />} />
             <Route path="products" element={<ProductManagement />} />
+            <Route path="live" element={<LiveManagement />} />
             <Route path="brands" element={<BrandManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="profile" element={<UserProfiles />} />

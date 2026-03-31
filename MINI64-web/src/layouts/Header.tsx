@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, LogOut, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Menu, Radio, ShoppingCart, X, LogOut, User } from "lucide-react";
+import axios from "axios";
+
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
 
-  // ✅ CÁCH SỬA: Khởi tạo state trực tiếp từ localStorage (Lazy Initializer)
-  // Cách này giúp React lấy tên user ngay lập tức mà không cần đợi render xong mới chạy useEffect
-  const [userName, setUserName] = useState<string | null>(() => {
+  const getUserNameFromStorage = () => {
     const userData = localStorage.getItem("user_info");
+
     if (userData) {
       try {
         const user = JSON.parse(userData);
@@ -20,23 +24,75 @@ const Header = () => {
         return null;
       }
     }
+
     return null;
-  });
+  };
+
+  const [userName, setUserName] = useState<string | null>(getUserNameFromStorage);
+
+  const fetchCartCount = async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      setCartCount(0);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${apiUrl}/api/cart/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const items = response.data?.data?.items ?? [];
+      const totalItems = items.reduce(
+        (sum: number, item: { quantity: number }) => sum + item.quantity,
+        0,
+      );
+
+      setCartCount(totalItems);
+    } catch (error) {
+      console.error(error);
+      setCartCount(0);
+    }
+  };
 
   useEffect(() => {
-    // useEffect giờ đây chỉ lo việc xử lý sự kiện bên ngoài (Scroll)
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const syncHeaderState = () => {
+      setUserName(getUserNameFromStorage());
+      fetchCartCount();
+    };
+
+    syncHeaderState();
+    window.addEventListener("storage", syncHeaderState);
+    window.addEventListener("auth-changed", syncHeaderState);
+    window.addEventListener("cart-changed", syncHeaderState);
+
+    return () => {
+      window.removeEventListener("storage", syncHeaderState);
+      window.removeEventListener("auth-changed", syncHeaderState);
+      window.removeEventListener("cart-changed", syncHeaderState);
+    };
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("user_info");
     localStorage.removeItem("access_token");
     setUserName(null);
+    setCartCount(0);
     setIsMenuOpen(false);
+    window.dispatchEvent(new Event("auth-changed"));
+    window.dispatchEvent(new Event("cart-changed"));
     navigate("/login");
   };
 
@@ -60,11 +116,10 @@ const Header = () => {
           : "bg-black/20 backdrop-blur-sm py-5"
       }`}
     >
-      <nav className="container mx-auto px-6 flex items-center justify-between">
-        {/* Logo */}
+      <nav className="container mx-auto flex items-center justify-between px-6">
         <div className="flex items-center">
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center group-hover:rotate-6 transition-transform">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 transition-transform group-hover:rotate-6">
               <img
                 src="https://res.cloudinary.com/speedwares/image/upload/v1659284687/windframe-logo-main_daes7r.png"
                 alt="Logo"
@@ -72,36 +127,62 @@ const Header = () => {
               />
             </div>
             <span
-              className={`text-xl font-bold hidden sm:block ${isScrolled ? "text-indigo-900" : "text-white"}`}
+              className={`hidden text-xl font-bold sm:block ${isScrolled ? "text-indigo-900" : "text-white"}`}
             >
               MINI64
             </span>
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
-              className={`${textColor} ${hoverColor} font-medium transition-colors relative group`}
+              className={`${textColor} ${hoverColor} relative font-medium transition-colors group`}
             >
               {link.name}
               <span
-                className={`absolute -bottom-1 left-0 w-0 h-0.5 ${isScrolled ? "bg-indigo-600" : "bg-themeYellow"} transition-all group-hover:w-full`}
+                className={`absolute -bottom-1 left-0 h-0.5 w-0 ${isScrolled ? "bg-indigo-600" : "bg-themeYellow"} transition-all group-hover:w-full`}
               ></span>
             </a>
           ))}
         </div>
 
-        {/* Auth Section */}
-        <div className="hidden md:flex items-center space-x-4">
+        <div className="hidden md:flex items-center gap-3">
+          <Link
+            to="/live"
+            className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-semibold transition ${
+              isScrolled
+                ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                : "border-white/20 bg-white/10 text-white hover:bg-white/20"
+            }`}
+          >
+            <Radio size={16} />
+            Live
+          </Link>
+
+          <Link
+            to="/live"
+            className={`relative inline-flex items-center justify-center rounded-full border p-3 transition ${
+              isScrolled
+                ? "border-gray-200 text-gray-800 hover:border-indigo-500 hover:text-indigo-600"
+                : "border-white/20 text-white hover:bg-white/10"
+            }`}
+          >
+            <ShoppingCart size={18} />
+            {cartCount > 0 && (
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-themeYellow px-1 text-xs font-bold text-black">
+                {cartCount}
+              </span>
+            )}
+          </Link>
+
           {userName ? (
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <div
-                  className={`p-1.5 rounded-full ${isScrolled ? "bg-indigo-100 text-indigo-600" : "bg-white/20 text-white"}`}
+                  className={`rounded-full p-1.5 ${isScrolled ? "bg-indigo-100 text-indigo-600" : "bg-white/20 text-white"}`}
                 >
                   <User size={18} />
                 </div>
@@ -126,13 +207,13 @@ const Header = () => {
             <>
               <Link
                 to="/login"
-                className={`${isScrolled ? "text-gray-900" : "text-white"} font-semibold hover:text-indigo-600 transition-colors`}
+                className={`${isScrolled ? "text-gray-900" : "text-white"} font-semibold transition-colors hover:text-indigo-600`}
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className={`${isScrolled ? "bg-indigo-600 text-white" : "bg-themeYellow text-black"} px-6 py-2.5 rounded-full font-semibold hover:opacity-90 transition-all shadow-sm`}
+                className={`${isScrolled ? "bg-indigo-600 text-white" : "bg-themeYellow text-black"} rounded-full px-6 py-2.5 font-semibold shadow-sm transition-all hover:opacity-90`}
               >
                 Sign Up Free
               </Link>
@@ -140,26 +221,33 @@ const Header = () => {
           )}
         </div>
 
-        {/* Mobile Toggle */}
         <div className="md:hidden">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className={`p-2 rounded-lg transition-colors ${isScrolled ? "text-indigo-600" : "text-white"}`}
+            className={`rounded-lg p-2 transition-colors ${isScrolled ? "text-indigo-600" : "text-white"}`}
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
       </nav>
 
-      {/* Mobile Menu Overlay */}
       <div
-        className={`md:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl transition-all duration-300 transform ${
+        className={`md:hidden absolute top-full left-0 w-full border-t border-gray-100 bg-white shadow-xl transition-all duration-300 transform ${
           isMenuOpen
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-4 pointer-events-none"
         }`}
       >
-        <div className="flex flex-col p-6 space-y-4">
+        <div className="flex flex-col space-y-4 p-6">
+          <Link
+            to="/live"
+            onClick={() => setIsMenuOpen(false)}
+            className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 font-semibold text-red-600"
+          >
+            <Radio size={18} />
+            Livestream Shopping
+          </Link>
+
           {navLinks.map((link) => (
             <a
               key={link.name}
@@ -171,20 +259,27 @@ const Header = () => {
             </a>
           ))}
 
-          <div className="flex flex-col space-y-3 pt-4 border-t">
+          <div className="flex flex-col space-y-3 border-t pt-4">
+            <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
+              <span className="font-semibold text-gray-800">Gio hang live</span>
+              <span className="rounded-full bg-themeYellow px-3 py-1 text-sm font-bold text-black">
+                {cartCount}
+              </span>
+            </div>
+
             {userName ? (
               <>
                 <div className="flex items-center gap-3 py-2">
-                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
                     <User size={20} />
                   </div>
-                  <span className="font-bold text-gray-900 text-lg">
+                  <span className="text-lg font-bold text-gray-900">
                     {userName}
                   </span>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="w-full py-3 bg-red-50 text-red-600 font-bold rounded-xl flex items-center justify-center gap-2"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 py-3 font-bold text-red-600"
                 >
                   <LogOut size={20} /> Logout
                 </button>
@@ -194,14 +289,14 @@ const Header = () => {
                 <Link
                   to="/login"
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-full py-3 text-center text-indigo-600 font-bold border border-indigo-600 rounded-xl"
+                  className="w-full rounded-xl border border-indigo-600 py-3 text-center font-bold text-indigo-600"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
                   onClick={() => setIsMenuOpen(false)}
-                  className="w-full py-3 text-center bg-indigo-600 text-white font-bold rounded-xl shadow-md"
+                  className="w-full rounded-xl bg-indigo-600 py-3 text-center font-bold text-white shadow-md"
                 >
                   Sign Up Free
                 </Link>

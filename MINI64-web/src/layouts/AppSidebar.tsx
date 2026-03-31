@@ -36,6 +36,11 @@ const navItems: NavItem[] = [
     path: "/admin/products",
   },
   {
+    icon: <PlugInIcon />,
+    name: "Livestream",
+    path: "/admin/live",
+  },
+  {
     icon: <BoxCubeIcon />,
     name: "Brands",
     path: "/admin/brands",
