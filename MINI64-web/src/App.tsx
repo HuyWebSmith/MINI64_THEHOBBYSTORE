@@ -44,18 +44,19 @@ function App() {
       <Routes>
         {/* --- NHÓM 1: TRANG DÀNH CHO KHÁCH (Có Header/Footer khách) --- */}
         <Route
+          path="/"
           element={
             <>
               <Header />
-              <Outlet /> {/* Nơi hiển thị Home, Login, Signup */}
+              <Outlet />
               <Footer />
             </>
           }
         >
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
-          <Route path="/signin" element={<SignIn />} />
+          <Route index element={<Home />} />
+          <Route path="login" element={<Login />} />
+          <Route path="signup" element={<SignUp />} />
+          <Route path="signin" element={<SignIn />} />
         </Route>
 
         {/* --- NHÓM 2: TRANG DASHBOARD ADMIN --- */}

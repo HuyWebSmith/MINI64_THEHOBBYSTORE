@@ -57,7 +57,7 @@ export default function ProductManagement() {
   const [successMessage, setSuccessMessage] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
-
+  const [isUploading, setIsUploading] = useState(false);
   // Lấy danh mục và thương hiệu khi mở Modal
   useEffect(() => {
     if (!showModal) return;
@@ -83,6 +83,39 @@ export default function ProductManagement() {
     fetchOptions();
   }, [showModal]);
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const data = new FormData();
+    data.append("file", file); // Khớp với upload.single("file") ở Backend
+
+    try {
+      const response = await fetch("http://localhost:3001/api/upload", {
+        method: "POST",
+        body: data,
+        // KHÔNG set Header 'Content-Type', trình duyệt sẽ tự làm với FormData
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        // Ưu tiên dùng link đã tối ưu nếu Backend trả về, không thì dùng link gốc
+        const imageUrl = result.data.optimized || result.data.original;
+        setFormData((prev) => ({ ...prev, image: imageUrl }));
+        setSuccessMessage("Tải ảnh lên thành công!");
+        setTimeout(() => setSuccessMessage(""), 2000);
+      } else {
+        throw new Error(result.message || "Upload thất bại");
+      }
+    } catch (error) {
+      console.error("Lỗi upload:", error);
+      setError("Không thể tải ảnh lên. Vui lòng kiểm tra lại Server Backend.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -263,17 +296,80 @@ export default function ProductManagement() {
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium mb-1">
-                        Link hình ảnh sản phẩm
+                      <label className="block text-sm font-medium mb-2">
+                        Hình ảnh sản phẩm
                       </label>
-                      <input
-                        name="image"
-                        value={formData.image}
-                        onChange={handleChange}
-                        required
-                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
-                        placeholder="https://..."
-                      />
+
+                      <div className="flex items-center gap-4">
+                        {/* Khu vực Preview Ảnh */}
+                        <div className="relative w-24 h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center overflow-hidden bg-gray-50 dark:bg-gray-800">
+                          {formData.image ? (
+                            <>
+                              <img
+                                src={formData.image}
+                                alt="Preview"
+                                className="w-full h-full object-cover"
+                              />
+                              {/* Nút xóa ảnh nếu muốn chọn lại */}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFormData({ ...formData, image: "" })
+                                }
+                                className="absolute top-0 right-0 bg-red-500 text-white p-1 text-xs rounded-bl-lg hover:bg-red-600"
+                              >
+                                ✕
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-gray-400 text-xs text-center px-1">
+                              Chưa có ảnh
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Nút Upload */}
+                        <div className="flex-1">
+                          <label
+                            className={`
+        inline-flex items-center px-4 py-2 rounded-lg cursor-pointer transition-all
+        ${
+          isUploading
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700 text-white"
+        }
+      `}
+                          >
+                            <svg
+                              className="w-5 h-5 mr-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                              />
+                            </svg>
+                            {isUploading
+                              ? "Đang tải lên..."
+                              : "Chọn ảnh từ thiết bị"}
+
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              disabled={isUploading}
+                            />
+                          </label>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Hỗ trợ: JPG, PNG, WEBP. Tối đa 5MB.
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
