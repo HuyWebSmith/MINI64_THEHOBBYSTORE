@@ -1,4 +1,3 @@
-import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -35,6 +34,13 @@ import ProtectedRoute from "./components/admin_component/auth/ProtectedRoute";
 import ProductManagement from "./pages/ProductManagementPage/ProductManagement";
 import BrandManagement from "./pages/BrandManagementPage/BrandManagement";
 import CategoryManagement from "./pages/CategoryManagementPage/CategoryManagement";
+import LiveManagement from "./pages/LiveManagementPage/LiveManagement";
+import LivePage from "./pages/LivePage";
+import WishlistPage from "./pages/WishlistPage";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderManagement from "./pages/OrderManagementPage/OrderManagement";
+import MyOrdersPage from "./pages/MyOrdersPage";
 function App() {
   return (
     <Router>
@@ -53,6 +59,11 @@ function App() {
           }
         >
           <Route path="/" element={<Home />} />
+          <Route path="/live" element={<LivePage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/orders" element={<MyOrdersPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<SignIn />} />
@@ -64,6 +75,8 @@ function App() {
           <Route path="/admin" element={<AppLayout />}>
             <Route index element={<Blank />} />
             <Route path="products" element={<ProductManagement />} />
+            <Route path="orders" element={<OrderManagement />} />
+            <Route path="live" element={<LiveManagement />} />
             <Route path="brands" element={<BrandManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="profile" element={<UserProfiles />} />

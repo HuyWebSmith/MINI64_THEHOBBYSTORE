@@ -1,4 +1,5 @@
-import { useState, ReactNode } from "react";
+import { useState } from "react";
+import type { ReactNode } from "react";
 import { UserContext } from "./UserContext";
 import type { User } from "./UserContext"; // ✅ fix TS1484
 

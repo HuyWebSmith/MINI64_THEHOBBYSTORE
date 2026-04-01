@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import client1 from "../assets/client1.png";
 import client2 from "../assets/client2.png";
 import client3 from "../assets/client3.png";

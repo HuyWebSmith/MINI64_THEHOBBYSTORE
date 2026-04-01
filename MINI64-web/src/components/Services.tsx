@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import payment from "../assets/payment.png";
 import shipping from "../assets/shipping.png";
 import refund from "../assets/return.png";

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 // 1. Sửa lỗi VerbatimModuleSyntax: Thêm 'type' khi import ChangeEvent, FormEvent
 import type { ChangeEvent, FormEvent } from "react";
 // 2. Import Link để dùng ở cuối trang (tránh lỗi unused hoặc lỗi undefined)

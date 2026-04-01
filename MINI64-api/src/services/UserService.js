@@ -1,4 +1,5 @@
 import User from "../models/UserModel.js";
+import Product from "../models/ProductModel.js";
 import bcrypt from "bcrypt";
 import JWTService from "../services/JWTService.js";
 
@@ -134,6 +135,92 @@ class UserService {
       };
     }
   }
+
+  async getWishlist(userId) {
+    try {
+      const user = await User.findById(userId)
+        .populate({
+          path: "wishlist",
+          populate: [
+            { path: "category", select: "name" },
+            { path: "brand", select: "name" },
+          ],
+        })
+        .select("wishlist");
+
+      if (!user) {
+        return {
+          status: "ERR",
+          message: "User not found",
+        };
+      }
+
+      return {
+        status: "OK",
+        message: "SUCCESS",
+        data: user.wishlist ?? [],
+      };
+    } catch (e) {
+      return {
+        status: "ERR",
+        message: e.message,
+      };
+    }
+  }
+
+  async toggleWishlist(userId, productId) {
+    try {
+      const user = await User.findById(userId);
+      const product = await Product.findById(productId);
+
+      if (!user) {
+        return {
+          status: "ERR",
+          message: "User not found",
+        };
+      }
+
+      if (!product) {
+        return {
+          status: "ERR",
+          message: "Product not found",
+        };
+      }
+
+      const exists = user.wishlist.some((item) => item.toString() === productId);
+
+      if (exists) {
+        user.wishlist = user.wishlist.filter(
+          (item) => item.toString() !== productId,
+        );
+      } else {
+        user.wishlist.push(productId);
+      }
+
+      await user.save();
+
+      const refreshedUser = await User.findById(userId).populate({
+        path: "wishlist",
+        populate: [
+          { path: "category", select: "name" },
+          { path: "brand", select: "name" },
+        ],
+      });
+
+      return {
+        status: "OK",
+        message: exists ? "REMOVED FROM WISHLIST" : "ADDED TO WISHLIST",
+        data: refreshedUser?.wishlist ?? [],
+        liked: !exists,
+      };
+    } catch (e) {
+      return {
+        status: "ERR",
+        message: e.message,
+      };
+    }
+  }
+
   async deleteUser(id) {
     try {
       const checkUser = await User.findOne({

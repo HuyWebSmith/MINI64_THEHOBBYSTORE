@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import deal from "../assets/deal-bg.jpg";
 import AOS from "aos";
 import "aos/dist/aos.css";

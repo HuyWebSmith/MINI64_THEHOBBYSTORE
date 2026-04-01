@@ -9,6 +9,8 @@ const productSchema = Joi.object({
     "string.empty": "Hình ảnh không được để trống",
   }),
 
+  model3dUrl: Joi.string().allow("").optional(),
+
   price: Joi.number().min(0).required().messages({
     "number.base": "Giá sản phẩm phải là số",
     "number.min": "Giá sản phẩm không được nhỏ hơn 0",
@@ -59,8 +61,8 @@ const validateProduct = (req, res, next) => {
       status: "ERR",
       message: messages,
     });
-    next();
   }
+  next();
 };
 const validateProductUpdate = (req, res, next) => {
   const { error } = productSchema

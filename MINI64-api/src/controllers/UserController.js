@@ -52,6 +52,41 @@ class UserController {
       });
     }
   }
+
+  async getWishlist(req, res) {
+    try {
+      const userId = req.user?.payload?.id;
+      const response = await UserService.getWishlist(userId);
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "ERR",
+        message: e.message,
+      });
+    }
+  }
+
+  async toggleWishlist(req, res) {
+    try {
+      const userId = req.user?.payload?.id;
+      const { productId } = req.body;
+
+      if (!productId) {
+        return res.status(StatusCodes.BAD_REQUEST).json({
+          status: "ERR",
+          message: "PRODUCT ID IS REQUIRED",
+        });
+      }
+
+      const response = await UserService.toggleWishlist(userId, productId);
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "ERR",
+        message: e.message,
+      });
+    }
+  }
 }
 
 export default new UserController();
