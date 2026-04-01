@@ -85,6 +85,11 @@ export default function UserProfiles() {
       <PageBreadcrumb pageTitle="Quản lý người dùng" />
 
       <div className="space-y-6">
+        {error && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
         {/* --- KHỐI THỐNG KÊ NHANH --- */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] flex items-center gap-4">

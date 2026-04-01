@@ -1,10 +1,18 @@
 import { useContext, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogOut, Menu, Radio, ShoppingCart, User, X } from "lucide-react";
+import {
+  Heart,
+  LogOut,
+  Menu,
+  Package,
+  Radio,
+  ShoppingCart,
+  User,
+  X,
+} from "lucide-react";
 import axios from "axios";
 import { UserContext } from "../context/UserContext";
-
-const apiUrl = import.meta.env.VITE_API_URL;
+import { apiUrl } from "../utils/shop";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -13,6 +21,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const getUserFromStorage = () => {
     const userData = localStorage.getItem("user_info");
@@ -57,6 +66,29 @@ const Header = () => {
     }
   };
 
+  const fetchWishlistCount = async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      setWishlistCount(0);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${apiUrl}/api/user/wishlist`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const items = response.data?.data ?? [];
+      setWishlistCount(items.length);
+    } catch (error) {
+      console.error(error);
+      setWishlistCount(0);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
 
@@ -68,17 +100,20 @@ const Header = () => {
     const syncHeaderState = () => {
       setUser(getUserFromStorage());
       fetchCartCount();
+      fetchWishlistCount();
     };
 
     syncHeaderState();
     window.addEventListener("storage", syncHeaderState);
     window.addEventListener("auth-changed", syncHeaderState);
     window.addEventListener("cart-changed", syncHeaderState);
+    window.addEventListener("wishlist-changed", syncHeaderState);
 
     return () => {
       window.removeEventListener("storage", syncHeaderState);
       window.removeEventListener("auth-changed", syncHeaderState);
       window.removeEventListener("cart-changed", syncHeaderState);
+      window.removeEventListener("wishlist-changed", syncHeaderState);
     };
   }, [location.pathname, setUser]);
 
@@ -87,14 +122,16 @@ const Header = () => {
     localStorage.removeItem("access_token");
     setUser(null);
     setCartCount(0);
+    setWishlistCount(0);
     setIsMenuOpen(false);
     window.dispatchEvent(new Event("auth-changed"));
     window.dispatchEvent(new Event("cart-changed"));
+    window.dispatchEvent(new Event("wishlist-changed"));
     navigate("/login");
   };
 
   const navLinks = [
-    { name: "SHOP", href: "#" },
+    { name: "SHOP", href: "#products" },
     { name: "CAR", href: "#" },
     { name: "GUIDE", href: "#" },
     { name: "BLOG", href: "#" },
@@ -165,7 +202,23 @@ const Header = () => {
           </Link>
 
           <Link
-            to="/live"
+            to="/wishlist"
+            className={`relative inline-flex items-center justify-center rounded-full border p-3 transition ${
+              isScrolled
+                ? "border-gray-200 text-gray-800 hover:border-indigo-500 hover:text-indigo-600"
+                : "border-white/20 text-white hover:bg-white/10"
+            }`}
+          >
+            <Heart size={18} />
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-xs font-bold text-white">
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            to="/cart"
             className={`relative inline-flex items-center justify-center rounded-full border p-3 transition ${
               isScrolled
                 ? "border-gray-200 text-gray-800 hover:border-indigo-500 hover:text-indigo-600"
@@ -179,6 +232,20 @@ const Header = () => {
               </span>
             )}
           </Link>
+
+          {user && (
+            <Link
+              to="/orders"
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 font-semibold transition ${
+                isScrolled
+                  ? "border-gray-200 text-gray-800 hover:border-indigo-500 hover:text-indigo-600"
+                  : "border-white/20 text-white hover:bg-white/10"
+              }`}
+            >
+              <Package size={16} />
+              Orders
+            </Link>
+          )}
 
           {user ? (
             <div className="flex items-center gap-6">
@@ -275,12 +342,39 @@ const Header = () => {
             </a>
           ))}
 
-          <div className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-            <span className="font-semibold text-gray-800">Gio hang live</span>
-            <span className="rounded-full bg-themeYellow px-3 py-1 text-sm font-bold text-black">
-              {cartCount}
-            </span>
+          <div className="grid grid-cols-2 gap-3">
+            <Link
+              to="/wishlist"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3"
+            >
+              <span className="font-semibold text-gray-800">Yeu thich</span>
+              <span className="rounded-full bg-rose-500 px-3 py-1 text-sm font-bold text-white">
+                {wishlistCount}
+              </span>
+            </Link>
+            <Link
+              to="/cart"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3"
+            >
+              <span className="font-semibold text-gray-800">Gio hang</span>
+              <span className="rounded-full bg-themeYellow px-3 py-1 text-sm font-bold text-black">
+                {cartCount}
+              </span>
+            </Link>
           </div>
+
+          {user && (
+            <Link
+              to="/orders"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3"
+            >
+              <span className="font-semibold text-gray-800">Don hang cua toi</span>
+              <Package size={18} className="text-indigo-600" />
+            </Link>
+          )}
 
           <div className="flex flex-col space-y-3 border-t pt-4">
             {user ? (

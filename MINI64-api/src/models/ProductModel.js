@@ -4,6 +4,17 @@ const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
     image: { type: String, required: true },
+    model3dUrl: { type: String, default: "" },
+    model3dStatus: {
+      type: String,
+      enum: ["idle", "processing", "ready", "failed"],
+      default: "idle",
+    },
+    model3dProvider: { type: String, default: "tripo3d" },
+    model3dJobId: { type: String, default: "" },
+    model3dError: { type: String, default: "" },
+    model3dRequestedAt: { type: Date, default: null },
+    model3dCompletedAt: { type: Date, default: null },
     price: { type: Number, required: true },
     stock: { type: Number, default: 0 },
     rating: { type: Number, required: true },

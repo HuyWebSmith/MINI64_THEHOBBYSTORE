@@ -7,6 +7,7 @@ class ProductController {
       const {
         name,
         image,
+        model3dUrl,
         price,
         stock,
         rating,
@@ -88,6 +89,54 @@ class ProductController {
         sort,
         filter,
       );
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: e.message });
+    }
+  }
+
+  async startGenerate3D(req, res) {
+    try {
+      const productId = req.params.id;
+      const response = await ProductService.startGenerate3D(productId);
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: e.message });
+    }
+  }
+
+  async syncGenerate3D(req, res) {
+    try {
+      const productId = req.params.id;
+      const response = await ProductService.syncGenerate3D(productId);
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: e.message });
+    }
+  }
+
+  async get3DStatus(req, res) {
+    try {
+      const productId = req.params.id;
+      const response = await ProductService.get3DStatus(productId);
+      return res.status(StatusCodes.OK).json(response);
+    } catch (e) {
+      return res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: e.message });
+    }
+  }
+
+  async uploadProductImageToCloudinary(req, res) {
+    try {
+      const productId = req.params.id;
+      const response = await ProductService.uploadProductImageToCloudinary(productId);
       return res.status(StatusCodes.OK).json(response);
     } catch (e) {
       return res

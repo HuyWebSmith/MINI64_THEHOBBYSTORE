@@ -1,93 +1,54 @@
-// react plugin for creating vector maps
-import { VectorMap } from "@react-jvectormap/core";
-import { worldMill } from "@react-jvectormap/world";
-
-// Define the component props
 interface CountryMapProps {
   mapColor?: string;
 }
 
-const CountryMap: React.FC<CountryMapProps> = ({ mapColor }) => {
+const CountryMap = ({ mapColor = "#D0D5DD" }: CountryMapProps) => {
+  const regions = [
+    { name: "North America", x: "8%", y: "24%", w: "24%", h: "30%" },
+    { name: "South America", x: "24%", y: "58%", w: "14%", h: "24%" },
+    { name: "Europe", x: "44%", y: "20%", w: "14%", h: "18%" },
+    { name: "Africa", x: "46%", y: "44%", w: "16%", h: "28%" },
+    { name: "Asia", x: "60%", y: "24%", w: "28%", h: "32%" },
+    { name: "Australia", x: "78%", y: "68%", w: "12%", h: "14%" },
+  ];
+
+  const markers = [
+    { name: "USA", left: "18%", top: "34%" },
+    { name: "India", left: "68%", top: "46%" },
+    { name: "United Kingdom", left: "49%", top: "26%" },
+    { name: "Sweden", left: "53%", top: "19%" },
+  ];
+
   return (
-    <VectorMap
-      map={worldMill}
-      backgroundColor="transparent"
-      markerStyle={{
-        initial: {
-          fill: "#465FFF",
-          r: 4, // Custom radius for markers
-        } as any, // Type assertion to bypass strict CSS property checks
-      }}
-      markersSelectable={true}
-      markers={[
-        {
-          latLng: [37.2580397, -104.657039],
-          name: "United States",
-          style: {
-            fill: "#465FFF",
-            borderWidth: 1,
-            borderColor: "white",
-            stroke: "#383f47",
-          },
-        },
-        {
-          latLng: [20.7504374, 73.7276105],
-          name: "India",
-          style: { fill: "#465FFF", borderWidth: 1, borderColor: "white" },
-        },
-        {
-          latLng: [53.613, -11.6368],
-          name: "United Kingdom",
-          style: { fill: "#465FFF", borderWidth: 1, borderColor: "white" },
-        },
-        {
-          latLng: [-25.0304388, 115.2092761],
-          name: "Sweden",
-          style: {
-            fill: "#465FFF",
-            borderWidth: 1,
-            borderColor: "white",
-            strokeOpacity: 0,
-          },
-        },
-      ]}
-      zoomOnScroll={false}
-      zoomMax={12}
-      zoomMin={1}
-      zoomAnimate={true}
-      zoomStep={1.5}
-      regionStyle={{
-        initial: {
-          fill: mapColor || "#D0D5DD",
-          fillOpacity: 1,
-          fontFamily: "Outfit",
-          stroke: "none",
-          strokeWidth: 0,
-          strokeOpacity: 0,
-        },
-        hover: {
-          fillOpacity: 0.7,
-          cursor: "pointer",
-          fill: "#465fff",
-          stroke: "none",
-        },
-        selected: {
-          fill: "#465FFF",
-        },
-        selectedHover: {},
-      }}
-      regionLabelStyle={{
-        initial: {
-          fill: "#35373e",
-          fontWeight: 500,
-          fontSize: "13px",
-          stroke: "none",
-        },
-        hover: {},
-        selected: {},
-        selectedHover: {},
-      }}
-    />
+    <div className="relative h-full w-full overflow-hidden rounded-2xl bg-gradient-to-br from-white to-slate-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="absolute inset-0 opacity-40">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(70,95,255,0.18),transparent_45%)]" />
+      </div>
+      {regions.map((region) => (
+        <div
+          key={region.name}
+          className="absolute rounded-full border border-white/80 shadow-sm dark:border-white/10"
+          style={{
+            left: region.x,
+            top: region.y,
+            width: region.w,
+            height: region.h,
+            backgroundColor: mapColor,
+          }}
+          title={region.name}
+        />
+      ))}
+      {markers.map((marker) => (
+        <div
+          key={marker.name}
+          className="absolute z-10"
+          style={{ left: marker.left, top: marker.top }}
+          title={marker.name}
+        >
+          <span className="block h-3 w-3 rounded-full bg-brand-500 ring-4 ring-brand-500/20" />
+        </div>
+      ))}
+    </div>
   );
 };
 

@@ -15,6 +15,7 @@ interface OptionItem {
 interface ProductFormData {
   name: string;
   image: string;
+  model3dUrl: string;
   price: string;
   stock: string;
   rating: string;
@@ -27,6 +28,7 @@ interface EditableProduct {
   _id: string;
   name: string;
   image: string;
+  model3dUrl?: string;
   price: number;
   stock: number;
   rating: number;
@@ -38,6 +40,7 @@ interface EditableProduct {
 const initialFormData: ProductFormData = {
   name: "",
   image: "",
+  model3dUrl: "",
   price: "",
   stock: "0",
   rating: "5",
@@ -103,6 +106,7 @@ export default function ProductManagement() {
     setFormData({
       name: product.name,
       image: product.image,
+      model3dUrl: product.model3dUrl ?? "",
       price: String(product.price),
       stock: String(product.stock),
       rating: String(product.rating),
@@ -216,6 +220,12 @@ export default function ProductManagement() {
                     </div>
                   )}
 
+                  {loadingOptions && (
+                    <div className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-600 border border-blue-200">
+                      Dang tai danh muc va thuong hieu...
+                    </div>
+                  )}
+
                   <form
                     onSubmit={handleSubmit}
                     className="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -273,6 +283,22 @@ export default function ProductManagement() {
                         required
                         className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
                         placeholder="https://..."
+                      />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Neu anh dang o localhost, ban co the bam `Len Cloud` trong bang san pham de doi sang URL public tren Cloudinary truoc khi tao 3D.
+                      </p>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-1">
+                        Link model 3D (.glb/.gltf) - tuy chon
+                      </label>
+                      <input
+                        name="model3dUrl"
+                        value={formData.model3dUrl}
+                        onChange={handleChange}
+                        className="w-full rounded-lg border p-2.5 dark:bg-gray-800 dark:border-gray-700"
+                        placeholder="https://...model.glb"
                       />
                     </div>
 

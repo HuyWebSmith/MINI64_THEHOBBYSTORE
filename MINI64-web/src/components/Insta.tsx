@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import insta1 from "../assets/insta-1.jpg";
 import insta2 from "../assets/insta-2.jpg";
 import insta3 from "../assets/insta-3.jpg";

@@ -36,11 +36,19 @@ class CartService {
     try {
       const { productId, quantity = 1, liveSessionId = null } = data;
       const product = await Product.findById(productId);
+      const normalizedQuantity = Math.max(1, Number(quantity) || 1);
 
       if (!product) {
         return {
           status: "ERR",
           message: "PRODUCT NOT FOUND",
+        };
+      }
+
+      if (product.stock <= 0) {
+        return {
+          status: "ERR",
+          message: "PRODUCT IS OUT OF STOCK",
         };
       }
 
@@ -60,14 +68,30 @@ class CartService {
       );
 
       if (existingItem) {
-        existingItem.quantity += Number(quantity) || 1;
+        const nextQuantity = existingItem.quantity + normalizedQuantity;
+
+        if (nextQuantity > product.stock) {
+          return {
+            status: "ERR",
+            message: `${product.name} chi con ${product.stock} san pham trong kho`,
+          };
+        }
+
+        existingItem.quantity = nextQuantity;
       } else {
+        if (normalizedQuantity > product.stock) {
+          return {
+            status: "ERR",
+            message: `${product.name} chi con ${product.stock} san pham trong kho`,
+          };
+        }
+
         cart.items.push({
           product: product._id,
           name: product.name,
           image: product.image,
           priceAtAdd: product.price,
-          quantity: Number(quantity) || 1,
+          quantity: normalizedQuantity,
           liveSession: liveSessionId,
         });
       }
@@ -103,10 +127,28 @@ class CartService {
         };
       }
 
-      if (Number(quantity) <= 0) {
+      const normalizedQuantity = Number(quantity);
+
+      if (normalizedQuantity <= 0) {
         item.deleteOne();
       } else {
-        item.quantity = Number(quantity);
+        const product = await Product.findById(item.product);
+
+        if (!product) {
+          return {
+            status: "ERR",
+            message: "PRODUCT NOT FOUND",
+          };
+        }
+
+        if (normalizedQuantity > product.stock) {
+          return {
+            status: "ERR",
+            message: `${product.name} chi con ${product.stock} san pham trong kho`,
+          };
+        }
+
+        item.quantity = normalizedQuantity;
       }
 
       await cart.save();
