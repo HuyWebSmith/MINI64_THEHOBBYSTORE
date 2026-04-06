@@ -1,17 +1,32 @@
 import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import { createServer } from "node:http";
+import { Server } from "socket.io";
 import routes from "./src/routes/index.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { initLiveCommerceSocket } from "./src/sockets/liveCommerceSocket.js";
+
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const port = process.env.APP_PORT || 3001;
 const hostname = process.env.APP_HOST;
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigin,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    credentials: true,
+  },
+});
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigin,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   }),
@@ -19,6 +34,7 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 routes(app);
+initLiveCommerceSocket(io);
 
 mongoose
   .connect(process.env.MONGODB_URI)
@@ -29,6 +45,6 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.listen(port, hostname, () => {
+httpServer.listen(port, hostname, () => {
   console.log(`App running at http://${hostname}:${port}`);
 });

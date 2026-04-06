@@ -46,6 +46,11 @@ const navItems: NavItem[] = [
     path: "/admin/categories",
   },
   {
+    icon: <PieChartIcon />,
+    name: "Live Stream",
+    path: "/admin/live",
+  },
+  {
     icon: <CalenderIcon />,
     name: "Calendar",
     path: "/admin/calendar",

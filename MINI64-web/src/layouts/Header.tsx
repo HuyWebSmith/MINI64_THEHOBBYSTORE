@@ -1,24 +1,37 @@
-import React, { useState, useEffect, useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, X, LogOut, User, Search, ShoppingCart } from "lucide-react";
 import { UserContext } from "../context/UserContext";
+import { useCart } from "../context/CartContext";
+
+const formatCurrency = (price: number) => `${price.toLocaleString("vi-VN")}đ`;
 
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLiveHeaderVisible, setIsLiveHeaderVisible] = useState(false);
 
   // State cho Search và Cart dropdown
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   const { user, setUser } = useContext(UserContext);
+  const { cartItems, cartCount, subtotal } = useCart();
+  const isLivePage = location.pathname === "/live";
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!isLivePage) {
+      setIsLiveHeaderVisible(false);
+    }
+  }, [isLivePage]);
 
   const handleLogout = () => {
     localStorage.removeItem("user_info");
@@ -29,7 +42,8 @@ const Header = () => {
   };
 
   const navLinks = [
-    { name: "SHOP", href: "#" },
+    { name: "SHOP", to: "/shop" },
+    { name: "LIVE", to: "/live" },
     { name: "CAR", href: "#" },
     { name: "GUIDE", href: "#" },
     { name: "BLOG", href: "#" },
@@ -42,13 +56,37 @@ const Header = () => {
     : "text-white hover:text-themeYellow";
 
   return (
-    <header
-      className={`fixed w-full z-40 transition-all duration-300 ${
-        isScrolled
-          ? "bg-white shadow-md py-3"
-          : "bg-black/20 backdrop-blur-sm py-5"
-      }`}
-    >
+    <>
+      {isLivePage && (
+        <div
+          className="fixed inset-x-0 top-0 z-40 h-6"
+          onMouseEnter={() => setIsLiveHeaderVisible(true)}
+        />
+      )}
+
+      <header
+        onMouseEnter={() => {
+          if (isLivePage) {
+            setIsLiveHeaderVisible(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (isLivePage) {
+            setIsLiveHeaderVisible(false);
+          }
+        }}
+        className={`fixed w-full z-40 transition-all duration-300 ${
+          isScrolled
+            ? "bg-white shadow-md py-3"
+            : "bg-black/20 backdrop-blur-sm py-5"
+        } ${
+          isLivePage
+            ? isLiveHeaderVisible
+              ? "translate-y-0"
+              : "-translate-y-[calc(100%-24px)]"
+            : "translate-y-0"
+        }`}
+      >
       <nav className="container mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center">
@@ -71,16 +109,29 @@ const Header = () => {
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-8">
           {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              className={`${textColor} font-medium transition-colors relative group`}
-            >
-              {link.name}
-              <span
-                className={`absolute -bottom-1 left-0 w-0 h-0.5 ${isScrolled ? "bg-indigo-600" : "bg-themeYellow"} transition-all group-hover:w-full`}
-              ></span>
-            </a>
+            link.to ? (
+              <Link
+                key={link.name}
+                to={link.to}
+                className={`${textColor} font-medium transition-colors relative group`}
+              >
+                {link.name}
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 ${isScrolled ? "bg-indigo-600" : "bg-themeYellow"} transition-all group-hover:w-full`}
+                ></span>
+              </Link>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                className={`${textColor} font-medium transition-colors relative group`}
+              >
+                {link.name}
+                <span
+                  className={`absolute -bottom-1 left-0 w-0 h-0.5 ${isScrolled ? "bg-indigo-600" : "bg-themeYellow"} transition-all group-hover:w-full`}
+                ></span>
+              </a>
+            )
           ))}
         </div>
 
@@ -127,7 +178,7 @@ const Header = () => {
             >
               <ShoppingCart size={22} />
               <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                0
+                {cartCount}
               </span>
             </button>
 
@@ -136,11 +187,52 @@ const Header = () => {
                 <h3 className="text-gray-800 font-bold mb-4">
                   Giỏ hàng của bạn
                 </h3>
-                <div className="flex flex-col items-center py-6 text-gray-400">
+                {cartItems.length > 0 && (
+                  <>
+                    <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+                      {cartItems.map((item) => (
+                        <Link
+                          key={item.productId}
+                          to={`/products/${item.productId}`}
+                          onClick={() => setIsCartOpen(false)}
+                          className="flex items-center gap-3 rounded-2xl bg-gray-50 p-3 transition hover:bg-gray-100"
+                        >
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="h-14 w-14 rounded-xl object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-gray-800">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {item.amount} x {formatCurrency(item.price)}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-4 text-sm font-semibold text-gray-700">
+                      <span>Tạm tính</span>
+                      <span>{formatCurrency(subtotal)}</span>
+                    </div>
+                  </>
+                )}
+                <div
+                  className={`${cartItems.length === 0 ? "flex" : "hidden"} flex-col items-center py-6 text-gray-400`}
+                >
                   <ShoppingCart size={40} className="mb-2 opacity-20" />
                   <p className="text-sm">Chưa có sản phẩm nào</p>
                 </div>
-                <button className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    navigate("/cart");
+                  }}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors"
+                >
                   Xem giỏ hàng
                 </button>
               </div>
@@ -200,14 +292,25 @@ const Header = () => {
       >
         <div className="flex flex-col p-6 space-y-4">
           {navLinks.map((link) => (
-            <a
-              key={link.name}
-              href={link.href}
-              onClick={() => setIsMenuOpen(false)}
-              className="text-lg font-medium text-gray-800 hover:text-indigo-600"
-            >
-              {link.name}
-            </a>
+            link.to ? (
+              <Link
+                key={link.name}
+                to={link.to}
+                onClick={() => setIsMenuOpen(false)}
+                className="text-lg font-medium text-gray-800 hover:text-indigo-600"
+              >
+                {link.name}
+              </Link>
+            ) : (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={() => setIsMenuOpen(false)}
+                className="text-lg font-medium text-gray-800 hover:text-indigo-600"
+              >
+                {link.name}
+              </a>
+            )
           ))}
 
           <div className="flex flex-col space-y-3 pt-4 border-t">
@@ -249,7 +352,8 @@ const Header = () => {
           </div>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 };
 

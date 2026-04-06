@@ -1,78 +1,84 @@
 import mongoose from "mongoose";
 
-const orderSchema = mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
     orderItems: [
       {
         name: {
           type: String,
-          require: true,
+          required: true,
         },
         amount: {
           type: Number,
-          require: true,
+          required: true,
         },
         image: {
           type: String,
-          require: true,
+          required: true,
         },
         price: {
           type: Number,
-          require: true,
+          required: true,
+        },
+        scale: {
+          type: String,
+          default: "1:64",
         },
         product: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Product",
-          require: true,
+          required: true,
         },
       },
     ],
     shippingAddress: {
       fullName: {
         type: String,
-        require: true,
+        required: true,
       },
       address: {
         type: String,
-        require: true,
+        required: true,
       },
       city: {
         type: String,
-        require: true,
-      },
-      country: {
-        type: String,
-        require: true,
+        required: true,
       },
       phone: {
-        type: Number,
-        require: true,
+        type: String,
+        required: true,
       },
     },
     paymentMethod: {
       type: String,
-      require: true,
+      required: true,
+      default: "COD",
     },
     itemsPrice: {
       type: Number,
-      require: true,
+      required: true,
     },
     shippingPrice: {
       type: Number,
-      require: true,
+      required: true,
     },
     taxPrice: {
       type: Number,
-      require: true,
+      default: 0,
     },
     totalPrice: {
       type: Number,
-      require: true,
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"],
+      default: "Pending",
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      require: true,
+      default: null,
     },
     isPaid: {
       type: Boolean,
@@ -91,4 +97,7 @@ const orderSchema = mongoose.Schema(
   },
   { timestamps: true },
 );
+
+const Order = mongoose.model("Order", orderSchema);
+
 export default Order;
