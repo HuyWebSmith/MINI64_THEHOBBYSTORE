@@ -1,4 +1,3 @@
-import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -35,6 +34,14 @@ import ProtectedRoute from "./components/admin_component/auth/ProtectedRoute";
 import ProductManagement from "./pages/ProductManagementPage/ProductManagement";
 import BrandManagement from "./pages/BrandManagementPage/BrandManagement";
 import CategoryManagement from "./pages/CategoryManagementPage/CategoryManagement";
+import ProductDetail from "./pages/ProductDetail";
+import ProductListingPage from "./pages/ProductListingPage";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderSuccessPage from "./pages/OrderSuccessPage";
+import LiveStreamAdminPage from "./pages/LiveStreamAdminPage";
+import LiveStreamPlayerPage from "./pages/LiveStreamPlayerPage";
+
 function App() {
   return (
     <Router>
@@ -57,6 +64,12 @@ function App() {
           <Route path="login" element={<Login />} />
           <Route path="signup" element={<SignUp />} />
           <Route path="signin" element={<SignIn />} />
+          <Route path="shop" element={<ProductListingPage />} />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="order-success" element={<OrderSuccessPage />} />
+          <Route path="live" element={<LiveStreamPlayerPage />} />
+          <Route path="products/:id" element={<ProductDetail />} />
         </Route>
 
         {/* --- NHÓM 2: TRANG DASHBOARD ADMIN --- */}
@@ -67,6 +80,7 @@ function App() {
             <Route path="products" element={<ProductManagement />} />
             <Route path="brands" element={<BrandManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
+            <Route path="live" element={<LiveStreamAdminPage />} />
             <Route path="profile" element={<UserProfiles />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="form-elements" element={<FormElements />} />

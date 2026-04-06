@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { FaRegHeart, FaStar } from "react-icons/fa";
 import { MdAddShoppingCart, MdOutlineRemoveRedEye } from "react-icons/md";
 import axios from "axios";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import { useCart } from "../context/CartContext";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -18,12 +20,17 @@ interface ProductItem {
     _id: string;
     name: string;
   } | null;
+  brand?: {
+    _id: string;
+    name: string;
+  } | null;
 }
 
 const ProductsGrid = () => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { addToCart } = useCart();
 
   const fetchProducts = async () => {
     try {
@@ -135,15 +142,35 @@ const ProductsGrid = () => {
                   id="icons"
                   className="absolute top-[20px] flex items-center justify-center gap-3"
                 >
-                  <div className="rounded-full bg-purple-500 p-3 text-white hover:bg-yellow-400 hover:text-black">
+                  <Link
+                    to={`/products/${item._id}`}
+                    aria-label={`Xem chi tiết ${item.name}`}
+                    className="rounded-full bg-purple-500 p-3 text-white transition hover:bg-yellow-400 hover:text-black"
+                  >
                     <MdOutlineRemoveRedEye />
-                  </div>
+                  </Link>
                   <div className="rounded-full bg-purple-500 p-3 text-white hover:bg-yellow-400 hover:text-black">
                     <FaRegHeart />
                   </div>
-                  <div className="rounded-full bg-purple-500 p-3 text-white hover:bg-yellow-400 hover:text-black">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      addToCart({
+                        productId: item._id,
+                        name: item.name,
+                        image: item.image,
+                        price: item.price,
+                        amount: 1,
+                        scale: "1:64",
+                        brand: item.brand?.name ?? "Mini64",
+                        stock: item.stock,
+                      })
+                    }
+                    className="rounded-full bg-purple-500 p-3 text-white hover:bg-yellow-400 hover:text-black"
+                    aria-label={`Thêm ${item.name} vào giỏ`}
+                  >
                     <MdAddShoppingCart />
-                  </div>
+                  </button>
                 </div>
                 <h1 className="text-lg font-semibold text-gray-400">
                   {item.category?.name ?? "Danh muc"}
