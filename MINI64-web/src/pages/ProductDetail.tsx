@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import {
+  BadgeCheck,
   ChevronRight,
+  Heart,
+  ImagePlus,
   Minus,
   PackageCheck,
   PackageX,
@@ -13,6 +16,8 @@ import {
   Truck,
 } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { UserContext } from "../context/UserContext";
+import { useWishlist } from "../context/WishlistContext";
 
 type TabKey = "description" | "reviews" | "shipping";
 
@@ -41,6 +46,20 @@ type RelatedProduct = {
   image: string;
   stock: number;
   rating: number;
+};
+
+type ReviewItem = {
+  _id: string;
+  rating: number;
+  title?: string;
+  comment: string;
+  verifiedBuyer: boolean;
+  createdAt: string;
+  images?: { url: string }[];
+  user?: {
+    name?: string;
+    email?: string;
+  } | null;
 };
 
 const productTabs: { key: TabKey; label: string }[] = [
@@ -171,17 +190,33 @@ function RelatedProductCard({
 function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
+  const { user } = useContext(UserContext);
+  const { wishlistIds, toggleWishlist } = useWishlist();
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([]);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [relatedLoading, setRelatedLoading] = useState(true);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reviewError, setReviewError] = useState("");
   const [selectedImage, setSelectedImage] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<TabKey>("description");
+  const [reviewSort, setReviewSort] = useState<"recent" | "highest-rated">(
+    "recent",
+  );
+  const [reviewForm, setReviewForm] = useState({
+    rating: "5",
+    title: "",
+    comment: "",
+  });
+  const [reviewImages, setReviewImages] = useState<File[]>([]);
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const productImages = useMemo(() => buildProductImages(product), [product]);
   const inStock = (product?.stock ?? 0) > 0;
+  const isWishlisted = product ? wishlistIds.includes(product._id) : false;
   const categoryName = product?.category?.name ?? "Danh mục";
   const brandName = product?.brand?.name ?? "Đang cập nhật";
   const description = product?.description ?? "";
@@ -290,13 +325,273 @@ function ProductDetail() {
     fetchRelatedProducts();
   }, [product]);
 
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!id) {
+        return;
+      }
+
+      try {
+        setReviewsLoading(true);
+        const response = await axios.get(`${apiUrl}/api/reviews/${id}`, {
+          params: {
+            sort: reviewSort,
+          },
+        });
+
+        setReviews(response.data?.data ?? []);
+      } catch (err) {
+        console.error(err);
+        setReviews([]);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    void fetchReviews();
+  }, [id, reviewSort]);
+
   const specifications = [
     { label: "Tỷ lệ", value: detectScale(product) },
     { label: "Hãng", value: brandName },
     { label: "Chất liệu", value: "Die-cast kim loại, chi tiết nhựa ABS" },
   ];
 
+  const handleSubmitReview = async () => {
+    if (!id) {
+      return;
+    }
+
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setReviewError("Please sign in before posting a review.");
+      return;
+    }
+
+    if (!reviewForm.comment.trim()) {
+      setReviewError("Please write your review first.");
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      setReviewError("");
+
+      const formData = new FormData();
+      formData.append("productId", id);
+      formData.append("rating", reviewForm.rating);
+      formData.append("title", reviewForm.title);
+      formData.append("comment", reviewForm.comment);
+      reviewImages.forEach((file) => formData.append("images", file));
+
+      await axios.post(`${apiUrl}/api/reviews`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const refreshed = await axios.get(`${apiUrl}/api/reviews/${id}`, {
+        params: { sort: "recent" },
+      });
+
+      setReviews(refreshed.data?.data ?? []);
+      setReviewForm({ rating: "5", title: "", comment: "" });
+      setReviewImages([]);
+      setReviewSort("recent");
+    } catch (err) {
+      console.error(err);
+      setReviewError("Could not submit your review right now.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const renderReviewsContent = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-[24px] bg-gray-50 p-5 dark:bg-white/5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-base font-bold text-gray-900 dark:text-white">
+              Community Reviews
+            </p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Upload photos of your 1:64 model and share collector feedback.
+            </p>
+          </div>
+          <select
+            value={reviewSort}
+            onChange={(event) =>
+              setReviewSort(event.target.value as "recent" | "highest-rated")
+            }
+            className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold outline-none dark:border-white/10 dark:bg-gray-900"
+          >
+            <option value="recent">Most Recent</option>
+            <option value="highest-rated">Highest Rated</option>
+          </select>
+        </div>
+
+        {user ? (
+          <div className="grid gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <input
+                type="text"
+                value={reviewForm.title}
+                onChange={(event) =>
+                  setReviewForm((current) => ({
+                    ...current,
+                    title: event.target.value,
+                  }))
+                }
+                placeholder="Review title"
+                className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-gray-900"
+              />
+              <select
+                value={reviewForm.rating}
+                onChange={(event) =>
+                  setReviewForm((current) => ({
+                    ...current,
+                    rating: event.target.value,
+                  }))
+                }
+                className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-gray-900"
+              >
+                {[5, 4, 3, 2, 1].map((value) => (
+                  <option key={value} value={String(value)}>
+                    {value} Stars
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <textarea
+              value={reviewForm.comment}
+              onChange={(event) =>
+                setReviewForm((current) => ({
+                  ...current,
+                  comment: event.target.value,
+                }))
+              }
+              rows={4}
+              placeholder="How does your Mini64 model look in hand?"
+              className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-gray-900"
+            />
+
+            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-600 dark:border-white/10 dark:bg-gray-900 dark:text-gray-300">
+              <ImagePlus className="h-4 w-4 text-indigo-500" />
+              <span>Upload review photos</span>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(event) =>
+                  setReviewImages(Array.from(event.target.files ?? []))
+                }
+                className="hidden"
+              />
+            </label>
+
+            {reviewImages.length > 0 ? (
+              <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+                {reviewImages.map((file) => (
+                  <span
+                    key={file.name}
+                    className="rounded-full bg-white px-3 py-1 dark:bg-gray-900"
+                  >
+                    {file.name}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            {reviewError ? (
+              <p className="text-sm font-medium text-red-500">{reviewError}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => void handleSubmitReview()}
+              disabled={submittingReview}
+              className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-500 disabled:opacity-60"
+            >
+              {submittingReview ? "Posting Review..." : "Post Review"}
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Sign in to post a review and upload collector photos.
+          </p>
+        )}
+      </div>
+
+      {reviewsLoading ? (
+        <div className="rounded-[24px] bg-gray-50 p-5 text-sm text-gray-500 dark:bg-white/5 dark:text-gray-400">
+          Loading reviews...
+        </div>
+      ) : reviews.length > 0 ? (
+        reviews.map((review) => (
+          <div
+            key={review._id}
+            className="rounded-[24px] bg-gray-50 p-5 dark:bg-white/5"
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-base font-bold text-gray-900 dark:text-white">
+                    {review.user?.name ?? review.user?.email ?? "Mini64 Collector"}
+                  </p>
+                  {review.verifiedBuyer ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-300">
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      Verified Buyer
+                    </span>
+                  ) : null}
+                </div>
+                {review.title ? (
+                  <p className="mt-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    {review.title}
+                  </p>
+                ) : null}
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  {review.comment}
+                </p>
+                {review.images?.length ? (
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {review.images.map((image, index) => (
+                      <img
+                        key={`${review._id}-${index}`}
+                        src={image.url}
+                        alt={`${review.user?.name ?? "review"} ${index + 1}`}
+                        className="h-28 w-full rounded-2xl object-cover"
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div className="text-left sm:text-right">
+                <span className="flex items-center gap-1 text-sm font-semibold text-amber-500 sm:justify-end">
+                  <Star className="h-4 w-4 fill-current" />
+                  {review.rating.toFixed(1)}
+                </span>
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-gray-400">
+                  {new Date(review.createdAt).toLocaleDateString("vi-VN")}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="rounded-[24px] bg-gray-50 p-5 text-sm text-gray-500 dark:bg-white/5 dark:text-gray-400">
+          No reviews yet. Be the first collector to share your Mini64 shots.
+        </div>
+      )}
+    </div>
+  );
+
   const renderTabContent = () => {
+    if (activeTab === "reviews") {
+      return renderReviewsContent();
+    }
+
     if (activeTab === "reviews") {
       return (
         <div className="space-y-5">

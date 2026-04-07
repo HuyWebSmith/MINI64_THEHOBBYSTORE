@@ -4,6 +4,7 @@ import { CircleCheckBig } from "lucide-react";
 function OrderSuccessPage() {
   const location = useLocation();
   const orderId = location.state?.orderId as string | undefined;
+  const email = location.state?.email as string | undefined;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-28 text-gray-900 dark:bg-gray-950 dark:text-white">
@@ -24,9 +25,18 @@ function OrderSuccessPage() {
             </p>
           ) : null}
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+            {orderId && email ? (
+              <Link
+                to="/track-order"
+                state={{ orderId, email }}
+                className="rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-themeYellow hover:text-black"
+              >
+                Theo dõi đơn hàng
+              </Link>
+            ) : null}
             <Link
               to="/shop"
-              className="rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-themeYellow hover:text-black"
+              className="rounded-2xl border border-gray-200 px-5 py-3 font-bold text-gray-700 transition hover:border-indigo-300 hover:text-indigo-600 dark:border-white/10 dark:text-gray-200 dark:hover:border-brand-500 dark:hover:text-brand-400"
             >
               Mua thêm sản phẩm
             </Link>
