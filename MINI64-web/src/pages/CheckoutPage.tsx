@@ -21,6 +21,7 @@ function CheckoutPage() {
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     fullName: user?.name ?? "",
+    email: user?.email ?? "",
     phone: "",
     address: "",
     city: "",
@@ -61,7 +62,10 @@ function CheckoutPage() {
 
       clearCart();
       navigate("/order-success", {
-        state: { orderId: response.data?.data?._id ?? null },
+        state: {
+          orderId: response.data?.data?._id ?? null,
+          email: formData.email,
+        },
       });
     } catch (err) {
       console.error(err);
@@ -111,6 +115,19 @@ function CheckoutPage() {
                 className="h-14 rounded-2xl border border-gray-200 bg-gray-50 px-4 outline-none focus:border-indigo-400 dark:border-white/10 dark:bg-gray-950"
               />
               <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
+                }
+                placeholder="Email"
+                className="h-14 rounded-2xl border border-gray-200 bg-gray-50 px-4 outline-none focus:border-indigo-400 dark:border-white/10 dark:bg-gray-950"
+              />
+              <input
                 type="tel"
                 required
                 value={formData.phone}
@@ -121,7 +138,7 @@ function CheckoutPage() {
                   }))
                 }
                 placeholder="Số điện thoại"
-                className="h-14 rounded-2xl border border-gray-200 bg-gray-50 px-4 outline-none focus:border-indigo-400 dark:border-white/10 dark:bg-gray-950"
+                className="h-14 rounded-2xl border border-gray-200 bg-gray-50 px-4 outline-none focus:border-indigo-400 dark:border-white/10 dark:bg-gray-950 sm:col-span-2"
               />
               <input
                 type="text"

@@ -7,6 +7,9 @@ export default defineConfig({
   define: {
     global: "globalThis",
   },
+  server: {
+    host: true,
+  },
   plugins: [
     react({
       babel: {

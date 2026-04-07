@@ -7,6 +7,7 @@ import routes from "./src/routes/index.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import { initLiveCommerceSocket } from "./src/sockets/liveCommerceSocket.js";
+import { initOrderStatusSocket } from "./src/sockets/orderStatusSocket.js";
 
 dotenv.config();
 
@@ -14,7 +15,10 @@ const app = express();
 const httpServer = createServer(app);
 const port = process.env.APP_PORT || 3001;
 const hostname = process.env.APP_HOST;
-const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+const allowedOrigin =
+  process.env.CLIENT_URL ||
+  "http://localhost:5173" ||
+  "http://10.10.17.242:5173";
 
 const io = new Server(httpServer, {
   cors: {
@@ -35,6 +39,7 @@ app.use(express.json());
 app.use(cookieParser());
 routes(app);
 initLiveCommerceSocket(io);
+initOrderStatusSocket(io);
 
 mongoose
   .connect(process.env.MONGODB_URI)

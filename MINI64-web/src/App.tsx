@@ -34,13 +34,18 @@ import ProtectedRoute from "./components/admin_component/auth/ProtectedRoute";
 import ProductManagement from "./pages/ProductManagementPage/ProductManagement";
 import BrandManagement from "./pages/BrandManagementPage/BrandManagement";
 import CategoryManagement from "./pages/CategoryManagementPage/CategoryManagement";
+import OrderManagement from "./pages/OrderManagementPage/OrderManagement";
 import ProductDetail from "./pages/ProductDetail";
 import ProductListingPage from "./pages/ProductListingPage";
 import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
+import MyOrdersPage from "./pages/MyOrdersTabsPage";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 import LiveStreamAdminPage from "./pages/LiveStreamAdminPage";
 import LiveStreamPlayerPage from "./pages/LiveStreamPlayerPage";
+import WishlistPage from "./pages/WishlistShowcasePage";
+import UserProfilePage from "./pages/UserProfileMotionPage";
 
 function App() {
   return (
@@ -67,8 +72,13 @@ function App() {
           <Route path="shop" element={<ProductListingPage />} />
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="my-orders" element={<MyOrdersPage />} />
+          <Route path="my-orders/:id" element={<OrderTrackingPage />} />
           <Route path="order-success" element={<OrderSuccessPage />} />
+          <Route path="track-order" element={<OrderTrackingPage />} />
           <Route path="live" element={<LiveStreamPlayerPage />} />
+          <Route path="wishlist" element={<WishlistPage />} />
+          <Route path="profile" element={<UserProfilePage />} />
           <Route path="products/:id" element={<ProductDetail />} />
         </Route>
 
@@ -78,6 +88,7 @@ function App() {
           <Route path="/admin" element={<AppLayout />}>
             <Route index element={<Blank />} />
             <Route path="products" element={<ProductManagement />} />
+            <Route path="orders" element={<OrderManagement />} />
             <Route path="brands" element={<BrandManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="live" element={<LiveStreamAdminPage />} />

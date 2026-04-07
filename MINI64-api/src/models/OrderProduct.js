@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ORDER_STATUSES, ORDER_STATUS_VALUES } from "../constants/orderStatus.js";
 
 const orderSchema = new mongoose.Schema(
   {
@@ -36,6 +37,12 @@ const orderSchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+      email: {
+        type: String,
+        required: true,
+        lowercase: true,
+        trim: true,
+      },
       address: {
         type: String,
         required: true,
@@ -72,8 +79,41 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"],
-      default: "Pending",
+      enum: ORDER_STATUS_VALUES,
+      default: ORDER_STATUSES.PENDING,
+    },
+    trackingCode: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    carrierName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: ORDER_STATUS_VALUES,
+          required: true,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        note: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+      },
+    ],
+    currentTimelineNote: {
+      type: String,
+      default: "",
+      trim: true,
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
