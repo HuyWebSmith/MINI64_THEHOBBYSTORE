@@ -1,10 +1,9 @@
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
   BadgeCheck,
   ChevronRight,
-  Heart,
   ImagePlus,
   Minus,
   PackageCheck,
@@ -190,8 +189,9 @@ function RelatedProductCard({
 function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const { user } = useContext(UserContext);
-  const { wishlistIds, toggleWishlist } = useWishlist();
+  const { wishlistIds } = useWishlist();
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<RelatedProduct[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
@@ -216,16 +216,72 @@ function ProductDetail() {
 
   const productImages = useMemo(() => buildProductImages(product), [product]);
   const inStock = (product?.stock ?? 0) > 0;
-  const isWishlisted = product ? wishlistIds.includes(product._id) : false;
+  void wishlistIds;
   const categoryName = product?.category?.name ?? "Danh mục";
   const brandName = product?.brand?.name ?? "Đang cập nhật";
   const description = product?.description ?? "";
   const productName = product?.name ?? "Chi tiết sản phẩm";
 
+  const replacementProduct = useMemo(() => {
+    if (!product?._id) {
+      return null;
+    }
+
+    const inStockItems = relatedProducts.filter(
+      (item) => item._id !== product._id && item.stock > 0,
+    );
+
+    if (inStockItems.length === 0) {
+      return null;
+    }
+
+    const sameCategory =
+      inStockItems.find((item) => item.category === categoryName) ?? null;
+
+    return sameCategory ?? inStockItems[0];
+  }, [categoryName, product?._id, relatedProducts]);
+
+  const [autoSwitchCancelled, setAutoSwitchCancelled] = useState(false);
+  const [autoSwitchSecondsLeft, setAutoSwitchSecondsLeft] = useState(3);
+
   useEffect(() => {
     setQuantity(1);
     setActiveTab("description");
+    setAutoSwitchCancelled(false);
+    setAutoSwitchSecondsLeft(3);
   }, [id]);
+
+  useEffect(() => {
+    if (inStock) {
+      return;
+    }
+
+    if (!replacementProduct?._id) {
+      return;
+    }
+
+    if (autoSwitchCancelled) {
+      return;
+    }
+
+    setAutoSwitchSecondsLeft(3);
+
+    const startedAt = Date.now();
+    const tick = window.setInterval(() => {
+      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+      const remaining = Math.max(0, 3 - elapsedSeconds);
+      setAutoSwitchSecondsLeft(remaining);
+    }, 250);
+
+    const timeout = window.setTimeout(() => {
+      navigate(`/products/${replacementProduct._id}`);
+    }, 3000);
+
+    return () => {
+      window.clearInterval(tick);
+      window.clearTimeout(timeout);
+    };
+  }, [autoSwitchCancelled, inStock, navigate, replacementProduct?._id]);
 
   useEffect(() => {
     const fetchProductDetail = async () => {
@@ -592,45 +648,6 @@ function ProductDetail() {
       return renderReviewsContent();
     }
 
-    if (activeTab === "reviews") {
-      return (
-        <div className="space-y-5">
-          <div className="rounded-[24px] bg-gray-50 p-5 dark:bg-white/5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-base font-bold text-gray-900 dark:text-white">
-                  Nguyễn Minh Khang
-                </p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Hoàn thiện tốt, nước sơn đẹp và bánh xe lăn mượt.
-                </p>
-              </div>
-              <span className="flex items-center gap-1 text-sm font-semibold text-amber-500">
-                <Star className="h-4 w-4 fill-current" />
-                5.0
-              </span>
-            </div>
-          </div>
-          <div className="rounded-[24px] bg-gray-50 p-5 dark:bg-white/5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-base font-bold text-gray-900 dark:text-white">
-                  Trần Gia Huy
-                </p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Đóng gói kỹ, giao đúng mẫu, rất hợp để trưng trong tủ kính.
-                </p>
-              </div>
-              <span className="flex items-center gap-1 text-sm font-semibold text-amber-500">
-                <Star className="h-4 w-4 fill-current" />
-                4.8
-              </span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
     if (activeTab === "shipping") {
       return (
         <div className="grid gap-4 md:grid-cols-2">
@@ -799,6 +816,48 @@ function ProductDetail() {
                 {description || "Mô tả sản phẩm đang được cập nhật."}
               </p>
 
+              {!inStock ? (
+                <div className="mt-6 rounded-[28px] border border-rose-200 bg-rose-50 p-5 dark:border-rose-500/20 dark:bg-rose-500/10">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-rose-700 dark:text-rose-200">
+                        Sản phẩm đã hết hàng
+                      </p>
+                      {replacementProduct ? (
+                        <p className="mt-2 text-sm text-rose-700/90 dark:text-rose-100/80">
+                          Sẽ chuyển sang{" "}
+                          <span className="font-semibold">{replacementProduct.name}</span>{" "}
+                          sau {autoSwitchSecondsLeft}s.
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-sm text-rose-700/90 dark:text-rose-100/80">
+                          Hiện chưa có sản phẩm thay thế còn hàng trong gợi ý.
+                        </p>
+                      )}
+                    </div>
+
+                    {replacementProduct ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAutoSwitchCancelled(true)}
+                          className="rounded-2xl border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-white/5 dark:text-rose-100 dark:hover:bg-white/10"
+                        >
+                          Hủy
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/products/${replacementProduct._id}`)}
+                          className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500"
+                        >
+                          Xem ngay
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <div className="inline-flex h-14 items-center justify-between rounded-2xl border border-gray-200 bg-white px-3 shadow-sm dark:border-white/10 dark:bg-gray-950 sm:w-[180px]">
                   <button
@@ -824,8 +883,10 @@ function ProductDetail() {
 
                 <button
                   type="button"
+                  disabled={!inStock}
                   onClick={() => {
                     if (!product) return;
+                    if (!inStock) return;
 
                     addToCart({
                       productId: product._id,
@@ -838,7 +899,11 @@ function ProductDetail() {
                       stock: product.stock,
                     });
                   }}
-                  className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-indigo-600 px-6 text-base font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-0.5 hover:bg-themeYellow hover:text-black dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black"
+                  className={`flex h-14 w-full items-center justify-center gap-3 rounded-2xl px-6 text-base font-bold shadow-lg transition ${
+                    inStock
+                      ? "bg-indigo-600 text-white shadow-indigo-600/20 hover:-translate-y-0.5 hover:bg-themeYellow hover:text-black dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black"
+                      : "cursor-not-allowed bg-gray-300 text-gray-600 shadow-none dark:bg-white/10 dark:text-white/40"
+                  }`}
                 >
                   <ShoppingCart className="h-5 w-5" />
                   Thêm vào giỏ hàng

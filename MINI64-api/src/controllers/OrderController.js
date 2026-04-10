@@ -1,11 +1,18 @@
 import OrderService from "../services/OrderService.js";
 import { emitOrderStatusUpdated } from "../sockets/orderStatusSocket.js";
+import {
+  emitAdminOrderCreated,
+  emitAdminOrderUpdated,
+} from "../sockets/adminOrdersSocket.js";
 
 class OrderController {
   async createOrder(req, res) {
     try {
       const response = await OrderService.createOrder(req.body);
       const statusCode = response.status === "OK" ? 200 : 400;
+      if (response.status === "OK") {
+        emitAdminOrderCreated(response.data);
+      }
       return res.status(statusCode).json(response);
     } catch (error) {
       return res.status(500).json({ status: "ERR", message: error.message });
@@ -32,6 +39,7 @@ class OrderController {
       const statusCode = response.status === "OK" ? 200 : 400;
       if (response.status === "OK") {
         emitOrderStatusUpdated(response.data);
+        emitAdminOrderUpdated(response.data);
       }
       return res.status(statusCode).json(response);
     } catch (error) {
@@ -50,6 +58,7 @@ class OrderController {
       if (response.status === "OK") {
         for (const order of response.data?.updatedOrders ?? []) {
           emitOrderStatusUpdated(order);
+          emitAdminOrderUpdated(order);
         }
       }
 
