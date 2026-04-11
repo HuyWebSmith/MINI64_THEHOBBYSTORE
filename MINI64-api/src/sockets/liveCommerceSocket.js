@@ -535,14 +535,21 @@ export function initLiveCommerceSocket(io) {
     socket.on("disconnect", () => {
       if (broadcasterSocketId === socket.id) {
         broadcasterSocketId = null;
+        io.emit(CLIENT_EVENTS.PEER_LEFT, {
+          socketId: socket.id,
+          role: "broadcaster",
+        });
         endLiveSession(io);
       }
 
       if (audienceSocketIds.delete(socket.id)) {
         liveSession.viewerCount = audienceSocketIds.size;
-        io.emit(CLIENT_EVENTS.PEER_LEFT, {
-          socketId: socket.id,
-        });
+        if (broadcasterSocketId) {
+          io.to(broadcasterSocketId).emit(CLIENT_EVENTS.PEER_LEFT, {
+            socketId: socket.id,
+            role: "audience",
+          });
+        }
       }
 
       emitLiveState(io);

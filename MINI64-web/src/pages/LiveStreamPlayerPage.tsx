@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import Peer from "simple-peer/simplepeer.min.js";
 import { io } from "socket.io-client";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Clock3,
-  LoaderCircle,
   MessageCircle,
   Minus,
   Plus,
@@ -13,10 +13,12 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   formatGoldenHourCountdown,
   getDisplayPrice,
 } from "../utils/goldenHourPricing";
+import { useCart } from "../context/CartContext";
 
 type ChatComment = {
   id: string;
@@ -41,6 +43,21 @@ type PinnedProduct = {
   options?: string[];
 };
 
+type ProductReference = {
+  _id?: string;
+  name?: string;
+};
+
+type ProductItem = {
+  _id: string;
+  name: string;
+  image: string;
+  price: number;
+  stock: number;
+  description?: string;
+  brand?: ProductReference | null;
+};
+
 type LiveStatePayload = {
   isActive: boolean;
   viewerCount: number;
@@ -56,6 +73,8 @@ const defaultOptions = ["Scale 1:64", "Premium Box"];
 const formatCurrency = (price: number) => `${price.toLocaleString("vi-VN")}đ`;
 
 export default function LiveStreamPlayerPage() {
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [liveState, setLiveState] = useState<LiveStatePayload>({
     isActive: false,
     viewerCount: 0,
@@ -68,11 +87,11 @@ export default function LiveStreamPlayerPage() {
   const [selectedOptions, setSelectedOptions] = useState<string[]>(defaultOptions);
   const [quantity, setQuantity] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isOrdering, setIsOrdering] = useState(false);
   const [isDealVisible, setIsDealVisible] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [pinnedProductDetails, setPinnedProductDetails] = useState<ProductItem | null>(null);
   const [streamStatus, setStreamStatus] = useState<
     "idle" | "waiting" | "signaling" | "received" | "playing" | "error"
   >("idle");
@@ -250,23 +269,28 @@ export default function LiveStreamPlayerPage() {
       },
     );
 
-    socket.on("LIVE_PEER_LEFT", () => {
+    socket.on(
+      "LIVE_PEER_LEFT",
+      ({ socketId, role }: { socketId?: string; role?: "audience" | "broadcaster" }) => {
+        const broadcasterLeft =
+          role === "broadcaster" ||
+          (!!socketId && socketId === broadcasterSocketIdRef.current);
+
+        if (!broadcasterLeft) {
+          return;
+        }
+
       if (peerRef.current) {
         peerRef.current.destroy();
         peerRef.current = null;
       }
       broadcasterSocketIdRef.current = null;
       setStreamStatus("waiting");
-    });
-
-    socket.on("ORDER_PLACED", () => {
-      setIsOrdering(false);
-      setIsSheetOpen(false);
-      setStatusMessage("Order received. We are holding your live deal now.");
-    });
+        setStatusMessage("Broadcaster disconnected. Waiting for the live stream to return.");
+      },
+    );
 
     socket.on("LIVE_ERROR", ({ message }: { message: string }) => {
-      setIsOrdering(false);
       setErrorMessage(message);
     });
 
@@ -281,6 +305,40 @@ export default function LiveStreamPlayerPage() {
       broadcasterSocketIdRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const pinnedProductId = liveState.pinnedProduct?.id;
+
+    if (!pinnedProductId) {
+      setPinnedProductDetails(null);
+      return;
+    }
+
+    let ignore = false;
+
+    const fetchPinnedProductDetails = async () => {
+      try {
+        const response = await axios.get(
+          `${apiUrl}/api/product/get-details/${pinnedProductId}`,
+        );
+
+        if (!ignore) {
+          setPinnedProductDetails((response.data?.data as ProductItem | null) ?? null);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!ignore) {
+          setPinnedProductDetails(null);
+        }
+      }
+    };
+
+    void fetchPinnedProductDetails();
+
+    return () => {
+      ignore = true;
+    };
+  }, [liveState.pinnedProduct?.id]);
 
   useEffect(() => {
     if (!isDealVisible) {
@@ -316,19 +374,42 @@ export default function LiveStreamPlayerPage() {
     );
   };
 
+  const getCartScaleLabel = () => {
+    const explicitScale = selectedOptions.find((option) =>
+      option.toLowerCase().includes("scale"),
+    );
+
+    if (explicitScale) {
+      return explicitScale;
+    }
+
+    const productText =
+      `${pinnedProductDetails?.name ?? ""} ${pinnedProductDetails?.description ?? ""}`.toLowerCase();
+
+    if (productText.includes("1:18")) return "1:18";
+    if (productText.includes("1:43")) return "1:43";
+    return "1:64";
+  };
+
   const handlePlaceOrder = () => {
-    if (!pinnedProduct || isSoldOut || isOrdering) {
+    if (!pinnedProduct || isSoldOut) {
       return;
     }
 
     setErrorMessage("");
-    setIsOrdering(true);
-    socketRef.current?.emit("PLACE_ORDER", {
+    addToCart({
       productId: pinnedProduct.id,
-      selectedOptions,
-      quantity,
+      name: pinnedProduct.name,
+      image: pinnedProductDetails?.image ?? "/favicon.png",
       price: displayPrice,
+      amount: quantity,
+      scale: getCartScaleLabel(),
+      brand: pinnedProductDetails?.brand?.name ?? "Mini64",
+      stock: stockLeft,
     });
+    setIsSheetOpen(false);
+    setStatusMessage("Đã thêm sản phẩm live vào giỏ hàng.");
+    navigate("/cart");
   };
 
   const handleSendMessage = () => {
@@ -465,7 +546,7 @@ export default function LiveStreamPlayerPage() {
                         {pinnedProduct.name}
                       </h2>
                       <p className="mt-2 text-sm text-slate-300">
-                        Flash Sale đang lên sóng. Nhấn để chọn option và chốt đơn ngay.
+                        Flash Sale đang lên sóng. Nhấn để chọn option và thêm vào giỏ hàng.
                       </p>
                     </div>
 
@@ -535,7 +616,7 @@ export default function LiveStreamPlayerPage() {
                   disabled={!pinnedProduct}
                   className="inline-flex h-12 items-center justify-center rounded-2xl bg-indigo-500 px-5 font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Buy Now
+                  Add to Cart
                 </button>
               </div>
             </div>
@@ -658,7 +739,7 @@ export default function LiveStreamPlayerPage() {
                       {pinnedProduct.name}
                     </h3>
                     <p className="mt-2 text-sm text-slate-300">
-                      Chọn option live, xác nhận số lượng, rồi chốt đơn ngay khi deal vẫn còn hàng.
+                      Chọn option live, xác nhận số lượng, rồi thêm vào giỏ trước khi checkout.
                     </p>
                   </div>
 
@@ -773,24 +854,19 @@ export default function LiveStreamPlayerPage() {
                     <button
                       type="button"
                       onClick={handlePlaceOrder}
-                      disabled={isSoldOut || isOrdering}
+                      disabled={isSoldOut}
                       className={`mt-5 inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl font-semibold transition ${
                         isSoldOut
                           ? "cursor-not-allowed bg-slate-700 text-slate-300"
                           : "bg-emerald-500 text-white hover:bg-emerald-400"
                       }`}
                     >
-                      {isOrdering ? (
-                        <>
-                          <LoaderCircle className="h-5 w-5 animate-spin" />
-                          Sending order...
-                        </>
-                      ) : isSoldOut ? (
+                      {isSoldOut ? (
                         "SOLD OUT"
                       ) : (
                         <>
                           <ShoppingBag className="h-5 w-5" />
-                          Buy Now
+                          Add to Cart
                         </>
                       )}
                     </button>

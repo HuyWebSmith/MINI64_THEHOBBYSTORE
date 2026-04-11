@@ -5,6 +5,7 @@ import {
   BoxCubeIcon,
   CalenderIcon,
   ChevronDownIcon,
+  ChatIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
@@ -54,6 +55,11 @@ const navItems: NavItem[] = [
     icon: <PieChartIcon />,
     name: "Live Stream",
     path: "/admin/live",
+  },
+  {
+    icon: <ChatIcon />,
+    name: "Support Chat",
+    path: "/admin/chat",
   },
   {
     icon: <CalenderIcon />,
