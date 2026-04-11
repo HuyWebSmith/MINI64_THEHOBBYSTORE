@@ -14,6 +14,7 @@ import {
   Star,
   Truck,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
 import { UserContext } from "../context/UserContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -221,6 +222,11 @@ function ProductDetail() {
   const brandName = product?.brand?.name ?? "Đang cập nhật";
   const description = product?.description ?? "";
   const productName = product?.name ?? "Chi tiết sản phẩm";
+  const addToCartLabel = inStock
+    ? user
+      ? "Thêm vào giỏ hàng"
+      : "Đăng nhập để mua"
+    : "Sản phẩm đã hết hàng";
 
   const replacementProduct = useMemo(() => {
     if (!product?._id) {
@@ -901,6 +907,11 @@ function ProductDetail() {
                   onClick={() => {
                     if (!product) return;
                     if (!inStock) return;
+                    if (!user) {
+                      toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng.");
+                      navigate("/login");
+                      return;
+                    }
 
                     addToCart({
                       productId: product._id,
@@ -920,7 +931,7 @@ function ProductDetail() {
                   }`}
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  {inStock ? "Thêm vào giỏ hàng" : "Sản phẩm đã hết hàng"}
+                  {addToCartLabel}
                 </button>
               </div>
 

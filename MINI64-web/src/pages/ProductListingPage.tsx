@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   ChevronDown,
@@ -10,7 +10,9 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
+import { UserContext } from "../context/UserContext";
 
 type BrandItem = {
   _id: string;
@@ -56,7 +58,13 @@ function detectScale(product: ProductItem) {
 
 function ProductCard({ product }: { product: ProductItem }) {
   const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const { user } = useContext(UserContext);
   const isOutOfStock = product.stock <= 0;
+  const requireLogin = () => {
+    toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng.");
+    navigate("/login");
+  };
 
   return (
     <div className="group relative overflow-hidden rounded-[28px] border border-gray-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:border-white/10 dark:bg-gray-900">
@@ -109,7 +117,12 @@ function ProductCard({ product }: { product: ProductItem }) {
           <button
             type="button"
             disabled={isOutOfStock}
-            onClick={() =>
+            onClick={() => {
+              if (!user) {
+                requireLogin();
+                return;
+              }
+
               addToCart({
                 productId: product._id,
                 name: product.name,
@@ -119,8 +132,8 @@ function ProductCard({ product }: { product: ProductItem }) {
                 scale: detectScale(product),
                 brand: product.brand?.name ?? "Mini64",
                 stock: product.stock,
-              })
-            }
+              });
+            }}
             className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 transition hover:bg-themeYellow hover:text-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black dark:disabled:bg-white/10 dark:disabled:text-white/40"
             aria-label={`Thêm nhanh ${product.name} vào giỏ`}
           >

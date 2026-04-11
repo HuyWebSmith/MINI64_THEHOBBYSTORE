@@ -1,15 +1,45 @@
+import { useContext } from "react";
 import toast from "react-hot-toast";
 import { AnimatePresence, motion } from "framer-motion";
 import { Heart, ShoppingCart, Trash2, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { UserContext } from "../context/UserContext";
 
 const formatCurrency = (price: number) => `${price.toLocaleString("vi-VN")}đ`;
 
 export default function WishlistShowcasePage() {
+  const { user } = useContext(UserContext);
   const { wishlistItems, toggleWishlist } = useWishlist();
   const { addToCart } = useCart();
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-28 dark:bg-gray-950">
+        <section className="mx-auto max-w-4xl px-5 pb-20 lg:px-8">
+          <div className="rounded-[36px] border border-dashed border-gray-200 bg-white px-6 py-16 text-center shadow-sm dark:border-white/10 dark:bg-gray-900">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-300">
+              <Heart className="h-9 w-9" />
+            </div>
+            <h1 className="mt-6 text-2xl font-bold text-gray-900 dark:text-white">
+              Vui lòng đăng nhập để xem wishlist
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500 dark:text-gray-400">
+              Đăng nhập để lưu và quản lý các mẫu xe bạn đã thả tim.
+            </p>
+            <Link
+              to="/login"
+              className="mt-7 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-indigo-500"
+            >
+              Đăng nhập
+              <ShoppingCart className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   const handleQuickAdd = (item: (typeof wishlistItems)[number]) => {
     if (item.product.stock <= 0) {

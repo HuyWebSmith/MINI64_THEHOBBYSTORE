@@ -1,6 +1,6 @@
 import { useContext, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Truck } from "lucide-react";
 import { useCart } from "../context/CartContext";
@@ -34,6 +34,30 @@ function CheckoutPage() {
   });
 
   const total = useMemo(() => subtotal + shippingFee, [subtotal]);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-28 text-gray-900 dark:bg-gray-950 dark:text-white">
+        <section className="mx-auto max-w-4xl px-5 pb-20 lg:px-8">
+          <div className="rounded-[36px] border border-dashed border-gray-200 bg-white px-6 py-16 text-center shadow-sm dark:border-white/10 dark:bg-gray-900">
+            <Truck className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+            <h1 className="mt-5 text-2xl font-bold text-gray-900 dark:text-white">
+              Vui lòng đăng nhập để thanh toán
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500 dark:text-gray-400">
+              Đăng nhập để đặt hàng và theo dõi lịch sử mua sắm.
+            </p>
+            <Link
+              to="/login"
+              className="mt-7 inline-flex rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-indigo-500"
+            >
+              Đăng nhập
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

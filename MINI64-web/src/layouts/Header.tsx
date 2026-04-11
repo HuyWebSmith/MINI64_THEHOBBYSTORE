@@ -14,6 +14,7 @@ import {
   Truck,
   Trash2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { UserContext } from "../context/UserContext";
 import { useCart } from "../context/CartContext";
 
@@ -54,6 +55,15 @@ const Header = () => {
     100,
     Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100),
   );
+  const ensureCartAccess = () => {
+    if (user) {
+      return true;
+    }
+
+    toast.error("Vui lòng đăng nhập để xem giỏ hàng.");
+    navigate("/login");
+    return false;
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -79,6 +89,10 @@ const Header = () => {
         };
       },
     ) => {
+      if (!ensureCartAccess()) {
+        return;
+      }
+
       if (!event.detail) {
         return;
       }
@@ -88,7 +102,13 @@ const Header = () => {
       window.setTimeout(() => setFlyItem(null), 700);
     };
 
-    const handleCartOpen = () => setIsCartOpen(true);
+    const handleCartOpen = () => {
+      if (!ensureCartAccess()) {
+        return;
+      }
+
+      setIsCartOpen(true);
+    };
 
     window.addEventListener("mini64:cart-fly", handleCartFly as EventListener);
     window.addEventListener("mini64:cart-open", handleCartOpen);
@@ -100,7 +120,7 @@ const Header = () => {
       );
       window.removeEventListener("mini64:cart-open", handleCartOpen);
     };
-  }, []);
+  }, [navigate, user]);
 
   const handleLogout = () => {
     localStorage.removeItem("user_info");
@@ -243,6 +263,10 @@ const Header = () => {
             <button
               id="mini64-cart-trigger"
               onClick={() => {
+                if (!ensureCartAccess()) {
+                  return;
+                }
+
                 setIsCartOpen(!isCartOpen);
                 setIsSearchOpen(false);
               }}
@@ -613,6 +637,10 @@ const Header = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!ensureCartAccess()) {
+                        return;
+                      }
+
                       setIsCartOpen(false);
                       navigate("/cart");
                     }}
@@ -626,6 +654,10 @@ const Header = () => {
                       if (hasUnavailableItems) {
                         setIsCartOpen(false);
                         navigate("/cart");
+                        return;
+                      }
+
+                      if (!ensureCartAccess()) {
                         return;
                       }
 
