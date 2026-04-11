@@ -18,7 +18,6 @@ import SignUp from "./pages/SignUpPage";
 import Header from "./layouts/Header";
 import Footer from "./layouts/Footer";
 import NotFound from "./pages/OtherPage/NotFound";
-import SignIn from "./pages/AuthPages/SignIn";
 import BarChart from "./pages/Charts/BarChart";
 import LineChart from "./pages/Charts/LineChart";
 import Videos from "./pages/UiElements/Videos";
@@ -129,7 +128,7 @@ function App() {
               </GuestOnlyAuthRoute>
             }
           />
-          <Route path="signin" element={<SignIn />} />
+          <Route path="signin" element={<Navigate to="/login" replace />} />
           <Route path="shop" element={<ProductListingPage />} />
           <Route path="cart" element={<CartPage />} />
           <Route path="checkout" element={<CheckoutPage />} />

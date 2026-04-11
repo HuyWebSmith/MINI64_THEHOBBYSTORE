@@ -5,6 +5,7 @@ import axios, { isAxiosError } from "axios";
 import { useNavigate } from "react-router-dom";
 import { useContext } from "react";
 import { UserContext } from "../context/UserContext";
+import { GoogleLogin } from "@react-oauth/google";
 const apiUrl = import.meta.env.VITE_API_URL;
 const SignInPage = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +19,7 @@ const SignInPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
   const navigate = useNavigate();
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
@@ -39,6 +41,42 @@ const SignInPage = () => {
     } catch (err) {
       if (isAxiosError(err)) {
         setError(err.response?.data?.message || "Login failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (credential?: string) => {
+    if (!credential) {
+      setError("Google login không hợp lệ. Vui lòng thử lại.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await axios.post(`${apiUrl}/api/auth/google`, {
+        credential,
+      });
+
+      if (res.status === 200) {
+        localStorage.setItem("access_token", res.data.access_token);
+        localStorage.setItem("user_info", JSON.stringify(res.data.data));
+        setUser(res.data.data);
+        const userRole = res.data.data.role;
+        if (userRole === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      }
+    } catch (err) {
+      if (isAxiosError(err)) {
+        setError(err.response?.data?.message || "Google login failed");
+      } else {
+        setError("Google login failed");
       }
     } finally {
       setLoading(false);
@@ -111,6 +149,27 @@ const SignInPage = () => {
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
+
+          {googleClientId ? (
+            <>
+              <div className="my-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-gray-200" />
+                <span className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+                  hoặc
+                </span>
+                <span className="h-px flex-1 bg-gray-200" />
+              </div>
+
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={(credentialResponse) =>
+                    handleGoogleLogin(credentialResponse.credential)
+                  }
+                  onError={() => setError("Google login không thành công.")}
+                />
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </div>

@@ -1,6 +1,9 @@
 import User from "../models/UserModel.js";
 import bcrypt from "bcrypt";
 import JWTService from "../services/JWTService.js";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 class AuthService {
   async createUser(newUser) {
@@ -90,6 +93,84 @@ class AuthService {
       };
     } catch (e) {
       return { status: "ERR", message: e.message };
+    }
+  }
+
+  async loginWithGoogle(idToken) {
+    try {
+      if (!process.env.GOOGLE_CLIENT_ID) {
+        return {
+          status: "ERR",
+          message: "Google client id is not configured",
+        };
+      }
+
+      if (!idToken) {
+        return { status: "ERR", message: "Google token is required" };
+      }
+
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+
+      if (!payload?.email) {
+        return { status: "ERR", message: "Google account email not available" };
+      }
+
+      if (payload.email_verified === false) {
+        return { status: "ERR", message: "Google email is not verified" };
+      }
+
+      let user = await User.findOne({ email: payload.email });
+
+      if (!user) {
+        const randomPassword = Math.random().toString(36).slice(-12);
+        const hash = await bcrypt.hash(randomPassword, 10);
+
+        user = await User.create({
+          name: payload.name || payload.email.split("@")[0],
+          email: payload.email,
+          password: hash,
+          phone: "0000000000",
+        });
+      }
+
+      if (user.isBlocked) {
+        return {
+          status: "ERR",
+          message: "Account is blocked. Please contact support.",
+        };
+      }
+
+      const access_token = await JWTService.generalAccessToken({
+        id: user.id,
+        role: user.role,
+      });
+
+      const refresh_token = await JWTService.generalRefreshToken({
+        id: user.id,
+        role: user.role,
+      });
+
+      await User.findByIdAndUpdate(
+        user.id,
+        { refresh_token },
+        { returnDocument: "after" },
+      );
+
+      const { password: pass, refresh_token: rt, ...userData } = user._doc;
+
+      return {
+        status: "OK",
+        message: "SUCCESS",
+        data: userData,
+        access_token,
+        refresh_token,
+      };
+    } catch (error) {
+      return { status: "ERR", message: error.message };
     }
   }
 

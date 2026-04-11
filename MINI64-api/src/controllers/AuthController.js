@@ -93,6 +93,45 @@ class AuthController {
     }
   }
 
+  async loginWithGoogle(req, res) {
+    try {
+      const { credential } = req.body;
+
+      const response = await AuthService.loginWithGoogle(credential);
+      if (response.status === "ERR") {
+        return res.status(StatusCodes.UNAUTHORIZED).json(response);
+      }
+
+      const { access_token, refresh_token, data } = response;
+
+      res.cookie("access_token", access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 60 * 60 * 1000,
+      });
+
+      res.cookie("refresh_token", refresh_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.status(StatusCodes.OK).json({
+        status: "OK",
+        message: "Login successfully",
+        data,
+        access_token,
+      });
+    } catch (e) {
+      return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "ERR",
+        message: e.message,
+      });
+    }
+  }
+
   async logoutUser(req, res) {
     try {
       const refresh_token = req.cookies.refresh_token;
