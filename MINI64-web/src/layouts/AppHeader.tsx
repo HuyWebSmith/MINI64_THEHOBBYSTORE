@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { useSidebar } from "../context/SidebarContext";
 import { ThemeToggleButton } from "../components/admin_component/common/ThemeToggleButton";
-
-import UserDropdown from "../components/admin_component/header/NotificationDropdown";
+import NotificationDropdown from "../components/admin_component/header/NotificationDropdown";
+import UserDropdown from "../components/admin_component/header/UserDropdown";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
@@ -162,6 +162,7 @@ const AppHeader: React.FC = () => {
             {/* <!-- Dark Mode Toggler --> */}
 
             {/* <!-- Notification Menu Area --> */}
+            <NotificationDropdown />
           </div>
           {/* <!-- User Area --> */}
           <UserDropdown />

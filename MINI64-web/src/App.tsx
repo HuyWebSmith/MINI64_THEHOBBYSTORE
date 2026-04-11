@@ -3,7 +3,10 @@ import {
   Routes,
   Route,
   Outlet,
+  Navigate,
 } from "react-router-dom";
+import { useContext } from "react";
+import type { ReactElement } from "react";
 
 // Import các trang
 import Home from "./layouts/Home";
@@ -46,6 +49,49 @@ import LiveStreamAdminPage from "./pages/LiveStreamAdminPage";
 import LiveStreamPlayerPage from "./pages/LiveStreamPlayerPage";
 import WishlistPage from "./pages/WishlistShowcasePage";
 import UserProfilePage from "./pages/UserProfileMotionPage";
+import { UserContext } from "./context/UserContext";
+import SupportChatPage from "./pages/SupportChatPage";
+import AdminChatPage from "./pages/AdminChatPage";
+
+const getStoredUserRole = () => {
+  const savedUserData = localStorage.getItem("user_info");
+
+  if (!savedUserData) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(savedUserData).role?.toString().trim().toLowerCase();
+  } catch {
+    return null;
+  }
+};
+
+const AdminAwareIndex = () => {
+  const { user } = useContext(UserContext);
+  const role = user?.role?.toString().trim().toLowerCase() ?? getStoredUserRole();
+
+  if (role === "admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Home />;
+};
+
+const GuestOnlyAuthRoute = ({ children }: { children: ReactElement }) => {
+  const { user } = useContext(UserContext);
+  const role = user?.role?.toString().trim().toLowerCase() ?? getStoredUserRole();
+
+  if (role === "admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (role) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   return (
@@ -65,9 +111,23 @@ function App() {
             </>
           }
         >
-          <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
-          <Route path="signup" element={<SignUp />} />
+          <Route index element={<AdminAwareIndex />} />
+          <Route
+            path="login"
+            element={
+              <GuestOnlyAuthRoute>
+                <Login />
+              </GuestOnlyAuthRoute>
+            }
+          />
+          <Route
+            path="signup"
+            element={
+              <GuestOnlyAuthRoute>
+                <SignUp />
+              </GuestOnlyAuthRoute>
+            }
+          />
           <Route path="signin" element={<SignIn />} />
           <Route path="shop" element={<ProductListingPage />} />
           <Route path="cart" element={<CartPage />} />
@@ -79,6 +139,7 @@ function App() {
           <Route path="live" element={<LiveStreamPlayerPage />} />
           <Route path="wishlist" element={<WishlistPage />} />
           <Route path="profile" element={<UserProfilePage />} />
+          <Route path="support" element={<SupportChatPage />} />
           <Route path="products/:id" element={<ProductDetail />} />
         </Route>
 
@@ -92,6 +153,7 @@ function App() {
             <Route path="brands" element={<BrandManagement />} />
             <Route path="categories" element={<CategoryManagement />} />
             <Route path="live" element={<LiveStreamAdminPage />} />
+            <Route path="chat" element={<AdminChatPage />} />
             <Route path="profile" element={<UserProfiles />} />
             <Route path="calendar" element={<Calendar />} />
             <Route path="form-elements" element={<FormElements />} />

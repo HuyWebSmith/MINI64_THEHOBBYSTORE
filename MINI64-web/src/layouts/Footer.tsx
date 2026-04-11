@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import client1 from "../assets/client1.png";
 import client2 from "../assets/client2.png";
 import client3 from "../assets/client3.png";
@@ -11,10 +11,9 @@ import pay1 from "../assets/pay-1.jpg";
 import pay2 from "../assets/pay-2.jpg";
 import pay3 from "../assets/pay-3.jpg";
 import pay4 from "../assets/pay-4.jpg";
-
-import { FaArrowUp } from "react-icons/fa";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import SupportChatWidget from "../components/chat/SupportChatWidget";
 
 const Footer = () => {
   useEffect(() => {
@@ -148,10 +147,7 @@ const Footer = () => {
         </p>
       </div>
 
-      {/* Back to top button (Optional) */}
-      <button className="fixed bottom-6 right-6 bg-purple-500 p-3 rounded-full text-white hover:scale-110 transition-transform">
-        <FaArrowUp />
-      </button>
+      <SupportChatWidget />
     </div>
   );
 };

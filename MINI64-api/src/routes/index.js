@@ -6,6 +6,7 @@ import CategoryRouter from "../routes/categoryRouter.js";
 import UpdateRouter from "../routes/UploadRoutes.js";
 import OrderRouter from "../routes/OrderRouter.js";
 import ReviewRouter from "../routes/ReviewRouter.js";
+import ChatRouter from "../routes/ChatRouter.js";
 
 const routes = (app) => {
   app.use("/api/user", UserRouter);
@@ -18,6 +19,7 @@ const routes = (app) => {
   app.use("/api/order", OrderRouter);
   app.use("/api/orders", OrderRouter);
   app.use("/api/reviews", ReviewRouter);
+  app.use("/api/chat", ChatRouter);
 };
 
 export default routes;

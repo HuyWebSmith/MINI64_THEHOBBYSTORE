@@ -22,6 +22,26 @@ export const authMiddleware = (req, res, next) => {
   });
 };
 
+export const optionalAuthMiddleware = (req, res, next) => {
+  const token =
+    req.headers.authorization?.split(" ")[1] || req.cookies.access_token;
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
+    if (err) {
+      req.user = null;
+      return next();
+    }
+
+    req.user = user;
+    next();
+  });
+};
+
 export const adminAuthMiddleware = (req, res, next) => {
   const userRole = (req.user?.role || req.user?.payload?.role)
     ?.toString()

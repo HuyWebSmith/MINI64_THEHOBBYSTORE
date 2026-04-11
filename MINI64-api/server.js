@@ -8,7 +8,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import { initLiveCommerceSocket } from "./src/sockets/liveCommerceSocket.js";
 import { initOrderStatusSocket } from "./src/sockets/orderStatusSocket.js";
-import { initAdminOrdersSocket } from "./src/sockets/adminOrdersSocket.js";
+import { initChatSocket } from "./src/sockets/chatSocket.js";
 
 dotenv.config();
 
@@ -41,7 +41,7 @@ app.use(cookieParser());
 routes(app);
 initLiveCommerceSocket(io);
 initOrderStatusSocket(io);
-initAdminOrdersSocket(io);
+initChatSocket(io);
 
 mongoose
   .connect(process.env.MONGODB_URI)
