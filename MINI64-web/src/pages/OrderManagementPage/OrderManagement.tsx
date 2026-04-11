@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { io } from "socket.io-client";
 import { ChevronDown, Loader2, RefreshCcw, Truck } from "lucide-react";
 import PageBreadcrumb from "../../components/admin_component/common/PageBreadCrumb";
 import ComponentCard from "../../components/admin_component/common/ComponentCard";
@@ -25,6 +26,11 @@ type OrderRow = {
   shippingAddress?: {
     fullName?: string;
   };
+};
+
+const ADMIN_ORDER_EVENTS = {
+  CREATED: "ADMIN_ORDER_CREATED",
+  UPDATED: "ADMIN_ORDER_UPDATED",
 };
 
 type FilterTab = {
@@ -113,6 +119,71 @@ export default function OrderManagement() {
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   const accessToken = localStorage.getItem("access_token");
+
+  useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+
+    const socket = io(apiUrl, {
+      auth: { token: `Bearer ${accessToken}` },
+      transports: ["websocket"],
+    });
+
+    socket.on(ADMIN_ORDER_EVENTS.CREATED, (order: OrderRow) => {
+      if (!order?._id) {
+        return;
+      }
+
+      setOrders((current) => {
+        if (current.some((item) => item._id === order._id)) {
+          return current;
+        }
+
+        return [order, ...current];
+      });
+
+      setDraftStatus((current) =>
+        current[order._id] ? current : { ...current, [order._id]: order.status },
+      );
+
+      setShippingDraft((current) =>
+        current[order._id]
+          ? current
+          : {
+              ...current,
+              [order._id]: {
+                trackingCode: order.trackingCode ?? "",
+                carrierName: order.carrierName ?? "",
+              },
+            },
+      );
+    });
+
+    socket.on(ADMIN_ORDER_EVENTS.UPDATED, (order: OrderRow) => {
+      if (!order?._id) {
+        return;
+      }
+
+      setOrders((current) =>
+        current.map((item) => (item._id === order._id ? { ...item, ...order } : item)),
+      );
+
+      setDraftStatus((current) => ({ ...current, [order._id]: order.status }));
+
+      setShippingDraft((current) => ({
+        ...current,
+        [order._id]: {
+          trackingCode: order.trackingCode ?? current[order._id]?.trackingCode ?? "",
+          carrierName: order.carrierName ?? current[order._id]?.carrierName ?? "",
+        },
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [accessToken]);
 
   const fetchOrders = async () => {
     if (!accessToken) {
@@ -306,7 +377,7 @@ export default function OrderManagement() {
       } = {
         orderIds: selectedOrderIds,
         status: bulkStatus,
-        note: `Admin chuyá»ƒn hÃ ng loáº¡t sang ${getStatusLabel(bulkStatus)}.`,
+        note: `Admin chuyển hàng loạt sang ${getStatusLabel(bulkStatus)}.`,
       };
 
       if (bulkStatus === "SHIPPING") {
@@ -340,12 +411,12 @@ export default function OrderManagement() {
       const failedCount = response.data?.data?.failedOrderIds?.length ?? 0;
       setSuccessMessage(
         failedCount > 0
-          ? `ÄÃ£ cáº­p nháº­t ${updatedOrders.length} Ä‘Æ¡n. ${failedCount} Ä‘Æ¡n khÃ´ng thá»ƒ cáº­p nháº­t.`
-          : `ÄÃ£ cáº­p nháº­t ${updatedOrders.length} Ä‘Æ¡n hÃ ng Ä‘Ã£ chá»n.`,
+          ? `Đã cập nhật ${updatedOrders.length} đơn. ${failedCount} đơn không thể cập nhật.`
+          : `Đã cập nhật ${updatedOrders.length} đơn hàng đã chọn.`,
       );
     } catch (err) {
       console.error(err);
-      setError("KhÃ´ng thá»ƒ cáº­p nháº­t hÃ ng loáº¡t cho cÃ¡c Ä‘Æ¡n Ä‘Ã£ chá»n.");
+      setError("Không thể cập nhật hàng loạt cho các đơn đã chọn.");
     } finally {
       setBulkUpdating(false);
     }
@@ -431,12 +502,12 @@ export default function OrderManagement() {
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
-                      ÄÃ£ chá»n {selectedOrderIds.length} Ä‘Æ¡n hÃ ng
+                      Đã chọn {selectedOrderIds.length} đơn hàng
                     </p>
                     <div className="grid gap-3 md:grid-cols-3">
                       <div>
                         <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                          Tráº¡ng thÃ¡i hÃ ng loáº¡t
+                          Trạng thái hàng loạt
                         </label>
                         <select
                           value={bulkStatus}
@@ -464,6 +535,7 @@ export default function OrderManagement() {
                               }))
                             }
                             placeholder="TÃªn Ä‘Æ¡n vá»‹ váº­n chuyá»ƒn"
+                            placeholder="Tên đơn vị vận chuyển"
                             className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-gray-700 dark:bg-gray-900"
                           />
                           <input
@@ -475,6 +547,7 @@ export default function OrderManagement() {
                               }))
                             }
                             placeholder="MÃ£ váº­n Ä‘Æ¡n"
+                            placeholder="Mã vận đơn"
                             className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-gray-700 dark:bg-gray-900"
                           />
                         </>
@@ -497,8 +570,8 @@ export default function OrderManagement() {
                       className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {bulkUpdating
-                        ? "Äang cáº­p nháº­t..."
-                        : "Cáº­p nháº­t cÃ¡c Ä‘Æ¡n Ä‘Ã£ chá»n"}
+                        ? "Đang cập nhật..."
+                        : "Cập nhật các đơn đã chọn"}
                     </button>
                   </div>
                 </div>
