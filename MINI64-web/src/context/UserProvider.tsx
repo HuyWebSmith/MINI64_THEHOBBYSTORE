@@ -10,7 +10,16 @@ export const UserProvider = ({ children }: Props) => {
   // ✅ Lazy initializer (không cần useEffect)
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem("user_info");
-    return storedUser ? JSON.parse(storedUser) : null;
+    if (!storedUser) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(storedUser);
+    } catch {
+      localStorage.removeItem("user_info");
+      return null;
+    }
   });
 
   return (

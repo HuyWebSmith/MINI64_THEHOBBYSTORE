@@ -178,22 +178,55 @@ export default function MyOrdersTabsPage() {
   const activeSection =
     orderSections.find((section) => section.key === activeTab) ?? orderSections[0];
 
-  const handleReorder = (order: MyOrder) => {
-    order.orderItems.forEach((item) => {
+  const handleReorder = async (order: MyOrder) => {
+    const stockChecks = await Promise.allSettled(
+      order.orderItems.map(async (item) => {
+        const response = await axios.get(
+          `${apiUrl}/api/product/get-details/${item.product}`,
+        );
+
+        return {
+          orderItem: item,
+          stock: Number(response.data?.data?.stock ?? 0),
+          brand: response.data?.data?.brand?.name ?? "Mini64",
+        };
+      }),
+    );
+
+    let addedCount = 0;
+
+    stockChecks.forEach((result) => {
+      if (result.status !== "fulfilled") {
+        return;
+      }
+
+      const { orderItem, stock, brand } = result.value;
+
+      if (stock <= 0) {
+        return;
+      }
+
       addToCart({
-        productId: item.product,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        amount: item.amount,
-        scale: item.scale || "1:64",
-        brand: "Mini64",
-        stock: 999,
+        productId: orderItem.product,
+        name: orderItem.name,
+        image: orderItem.image,
+        price: orderItem.price,
+        amount: Math.min(orderItem.amount, stock),
+        scale: orderItem.scale || "1:64",
+        brand,
+        stock,
       });
+      addedCount += 1;
     });
 
-    window.dispatchEvent(new Event("mini64:cart-open"));
-    toast.success(`Đã thêm lại ${order.orderItems.length} sản phẩm vào giỏ hàng.`);
+    if (addedCount > 0) {
+      window.dispatchEvent(new Event("mini64:cart-open"));
+      toast.success(`Đã thêm lại ${addedCount} sản phẩm còn hàng vào giỏ.`);
+    }
+
+    if (addedCount < order.orderItems.length) {
+      toast.error("Một số sản phẩm trong đơn cũ hiện đã hết hàng hoặc không còn đủ số lượng.");
+    }
   };
 
   if (!user) {

@@ -9,6 +9,7 @@ const router = express.Router();
 
 router.post("/sign-up", validateRegister, AuthController.createUser);
 router.post("/sign-in", AuthController.loginUser);
+router.post("/google", AuthController.loginWithGoogle);
 router.post("/logout", AuthController.logoutUser);
 router.post("/refresh-token", AuthController.refreshToken);
 router.patch(

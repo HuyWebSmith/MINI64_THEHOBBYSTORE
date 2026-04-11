@@ -534,7 +534,6 @@ export default function OrderManagement() {
                                 carrierName: event.target.value,
                               }))
                             }
-                            placeholder="TÃªn Ä‘Æ¡n vá»‹ váº­n chuyá»ƒn"
                             placeholder="Tên đơn vị vận chuyển"
                             className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-gray-700 dark:bg-gray-900"
                           />
@@ -546,7 +545,6 @@ export default function OrderManagement() {
                                 trackingCode: event.target.value,
                               }))
                             }
-                            placeholder="MÃ£ váº­n Ä‘Æ¡n"
                             placeholder="Mã vận đơn"
                             className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-indigo-400 dark:border-gray-700 dark:bg-gray-900"
                           />

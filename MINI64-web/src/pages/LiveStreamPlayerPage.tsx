@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Peer from "simple-peer/simplepeer.min.js";
 import { io } from "socket.io-client";
@@ -19,6 +19,7 @@ import {
   getDisplayPrice,
 } from "../utils/goldenHourPricing";
 import { useCart } from "../context/CartContext";
+import { UserContext } from "../context/UserContext";
 
 type ChatComment = {
   id: string;
@@ -75,6 +76,7 @@ const formatCurrency = (price: number) => `${price.toLocaleString("vi-VN")}đ`;
 export default function LiveStreamPlayerPage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { user } = useContext(UserContext);
   const [liveState, setLiveState] = useState<LiveStatePayload>({
     isActive: false,
     viewerCount: 0,
@@ -392,6 +394,12 @@ export default function LiveStreamPlayerPage() {
   };
 
   const handlePlaceOrder = () => {
+    if (!user) {
+      setErrorMessage("Vui lòng đăng nhập để mua hàng.");
+      navigate("/login");
+      return;
+    }
+
     if (!pinnedProduct || isSoldOut) {
       return;
     }

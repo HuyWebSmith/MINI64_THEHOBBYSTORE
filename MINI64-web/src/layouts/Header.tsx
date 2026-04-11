@@ -14,6 +14,7 @@ import {
   Truck,
   Trash2,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { UserContext } from "../context/UserContext";
 import { useCart } from "../context/CartContext";
 
@@ -40,14 +41,29 @@ const Header = () => {
   } | null>(null);
 
   const { user, setUser } = useContext(UserContext);
-  const { cartItems, cartCount, subtotal, updateQuantity, removeFromCart } =
-    useCart();
+  const {
+    cartItems,
+    cartCount,
+    subtotal,
+    hasUnavailableItems,
+    updateQuantity,
+    removeFromCart,
+  } = useCart();
   const isLivePage = location.pathname === "/live";
   const shippingShortfall = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const shippingProgress = Math.min(
     100,
     Math.round((subtotal / FREE_SHIPPING_THRESHOLD) * 100),
   );
+  const ensureCartAccess = () => {
+    if (user) {
+      return true;
+    }
+
+    toast.error("Vui lòng đăng nhập để xem giỏ hàng.");
+    navigate("/login");
+    return false;
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -73,6 +89,10 @@ const Header = () => {
         };
       },
     ) => {
+      if (!ensureCartAccess()) {
+        return;
+      }
+
       if (!event.detail) {
         return;
       }
@@ -82,7 +102,13 @@ const Header = () => {
       window.setTimeout(() => setFlyItem(null), 700);
     };
 
-    const handleCartOpen = () => setIsCartOpen(true);
+    const handleCartOpen = () => {
+      if (!ensureCartAccess()) {
+        return;
+      }
+
+      setIsCartOpen(true);
+    };
 
     window.addEventListener("mini64:cart-fly", handleCartFly as EventListener);
     window.addEventListener("mini64:cart-open", handleCartOpen);
@@ -94,13 +120,14 @@ const Header = () => {
       );
       window.removeEventListener("mini64:cart-open", handleCartOpen);
     };
-  }, []);
+  }, [navigate, user]);
 
   const handleLogout = () => {
     localStorage.removeItem("user_info");
     localStorage.removeItem("access_token");
     setUser(null);
     setIsMenuOpen(false);
+    setIsCartOpen(false);
     navigate("/login");
   };
 
@@ -236,6 +263,10 @@ const Header = () => {
             <button
               id="mini64-cart-trigger"
               onClick={() => {
+                if (!ensureCartAccess()) {
+                  return;
+                }
+
                 setIsCartOpen(!isCartOpen);
                 setIsSearchOpen(false);
               }}
@@ -497,6 +528,12 @@ const Header = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto px-6 py-5">
+                {hasUnavailableItems ? (
+                  <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+                    Có sản phẩm trong giỏ đã hết hàng hoặc vượt quá số lượng tồn kho. Vui lòng kiểm tra lại trước khi thanh toán.
+                  </div>
+                ) : null}
+
                 {cartItems.length > 0 ? (
                   <div className="space-y-4">
                     {cartItems.map((item) => (
@@ -524,6 +561,15 @@ const Header = () => {
                             <p className="mt-2 font-bold text-indigo-700">
                               {formatCurrency(item.price)}
                             </p>
+                            {item.stock <= 0 ? (
+                              <p className="mt-2 text-sm font-semibold text-rose-600">
+                                Sản phẩm hiện đã hết hàng
+                              </p>
+                            ) : item.amount > item.stock ? (
+                              <p className="mt-2 text-sm font-semibold text-amber-600">
+                                Chỉ còn {item.stock} sản phẩm trong kho
+                              </p>
+                            ) : null}
                           </div>
                         </div>
 
@@ -548,6 +594,7 @@ const Header = () => {
                               onClick={() =>
                                 updateQuantity(item.productId, item.amount + 1)
                               }
+                              disabled={item.stock <= 0}
                               className="rounded-xl p-2 text-slate-600 transition hover:bg-slate-100"
                             >
                               <Plus size={16} />
@@ -590,6 +637,10 @@ const Header = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!ensureCartAccess()) {
+                        return;
+                      }
+
                       setIsCartOpen(false);
                       navigate("/cart");
                     }}
@@ -600,12 +651,23 @@ const Header = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      if (hasUnavailableItems) {
+                        setIsCartOpen(false);
+                        navigate("/cart");
+                        return;
+                      }
+
+                      if (!ensureCartAccess()) {
+                        return;
+                      }
+
                       setIsCartOpen(false);
                       navigate("/checkout");
                     }}
-                    className="rounded-2xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-500"
+                    className="rounded-2xl bg-indigo-600 px-4 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={cartItems.length === 0}
                   >
-                    Checkout
+                    {hasUnavailableItems ? "Kiểm tra giỏ hàng" : "Checkout"}
                   </button>
                 </div>
               </div>

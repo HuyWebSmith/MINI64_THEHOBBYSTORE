@@ -1,6 +1,8 @@
+import { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { UserContext } from "../context/UserContext";
 
 function formatCurrency(price: number) {
   return `${price.toLocaleString("vi-VN")}đ`;
@@ -8,7 +10,38 @@ function formatCurrency(price: number) {
 
 function CartPage() {
   const navigate = useNavigate();
-  const { cartItems, subtotal, updateQuantity, removeFromCart } = useCart();
+  const { user } = useContext(UserContext);
+  const {
+    cartItems,
+    subtotal,
+    hasUnavailableItems,
+    updateQuantity,
+    removeFromCart,
+  } = useCart();
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-28 text-gray-900 dark:bg-gray-950 dark:text-white">
+        <section className="mx-auto max-w-4xl px-5 pb-20 lg:px-8">
+          <div className="rounded-[36px] border border-dashed border-gray-200 bg-white px-6 py-16 text-center shadow-sm dark:border-white/10 dark:bg-gray-900">
+            <ShoppingCart className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" />
+            <h1 className="mt-5 text-2xl font-bold text-gray-900 dark:text-white">
+              Vui lòng đăng nhập để xem giỏ hàng
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-sm text-gray-500 dark:text-gray-400">
+              Đăng nhập để lưu giỏ hàng và tiếp tục mua sắm thuận tiện hơn.
+            </p>
+            <Link
+              to="/login"
+              className="mt-7 inline-flex rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-indigo-500"
+            >
+              Đăng nhập
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pt-28 text-gray-900 dark:bg-gray-950 dark:text-white">
@@ -36,6 +69,12 @@ function CartPage() {
         ) : (
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
+              {hasUnavailableItems ? (
+                <div className="rounded-[28px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
+                  Có sản phẩm trong giỏ đã hết hàng hoặc số lượng vượt quá tồn kho hiện tại. Vui lòng chỉnh lại trước khi thanh toán.
+                </div>
+              ) : null}
+
               {cartItems.map((item) => (
                 <div
                   key={item.productId}
@@ -62,6 +101,15 @@ function CartPage() {
                           <p className="mt-2 text-xl font-bold text-indigo-700 dark:text-brand-400">
                             {formatCurrency(item.price)}
                           </p>
+                          {item.stock <= 0 ? (
+                            <p className="mt-2 text-sm font-semibold text-rose-600 dark:text-rose-300">
+                              Sản phẩm hiện đã hết hàng
+                            </p>
+                          ) : item.amount > item.stock ? (
+                            <p className="mt-2 text-sm font-semibold text-amber-600 dark:text-amber-300">
+                              Chỉ còn {item.stock} sản phẩm trong kho
+                            </p>
+                          ) : null}
                         </div>
                         <button
                           type="button"
@@ -80,6 +128,7 @@ function CartPage() {
                             onClick={() =>
                               updateQuantity(item.productId, item.amount - 1)
                             }
+                            disabled={item.stock <= 0}
                             className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5"
                           >
                             <Minus className="h-4 w-4" />
@@ -90,6 +139,7 @@ function CartPage() {
                             onClick={() =>
                               updateQuantity(item.productId, item.amount + 1)
                             }
+                            disabled={item.stock <= 0 || item.amount >= item.stock}
                             className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5"
                           >
                             <Plus className="h-4 w-4" />
@@ -134,7 +184,8 @@ function CartPage() {
               <button
                 type="button"
                 onClick={() => navigate("/checkout")}
-                className="mt-6 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-themeYellow hover:text-black dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black"
+                disabled={hasUnavailableItems}
+                className="mt-6 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-themeYellow hover:text-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black dark:disabled:bg-white/10 dark:disabled:text-white/40"
               >
                 Tiến hành thanh toán COD
               </button>

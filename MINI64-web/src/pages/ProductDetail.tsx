@@ -14,6 +14,7 @@ import {
   Star,
   Truck,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
 import { UserContext } from "../context/UserContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -221,6 +222,11 @@ function ProductDetail() {
   const brandName = product?.brand?.name ?? "Đang cập nhật";
   const description = product?.description ?? "";
   const productName = product?.name ?? "Chi tiết sản phẩm";
+  const addToCartLabel = inStock
+    ? user
+      ? "Thêm vào giỏ hàng"
+      : "Đăng nhập để mua"
+    : "Sản phẩm đã hết hàng";
 
   const replacementProduct = useMemo(() => {
     if (!product?._id) {
@@ -250,6 +256,16 @@ function ProductDetail() {
     setAutoSwitchCancelled(false);
     setAutoSwitchSecondsLeft(3);
   }, [id]);
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    setQuantity((current) =>
+      Math.max(1, Math.min(current, Math.max(1, product.stock))),
+    );
+  }, [product]);
 
   useEffect(() => {
     if (inStock) {
@@ -863,6 +879,7 @@ function ProductDetail() {
                   <button
                     type="button"
                     onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                    disabled={!inStock}
                     className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-brand-400"
                     aria-label="Giảm số lượng"
                   >
@@ -873,7 +890,10 @@ function ProductDetail() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((prev) => prev + 1)}
+                    onClick={() =>
+                      setQuantity((prev) => Math.min(product.stock, prev + 1))
+                    }
+                    disabled={!inStock || quantity >= product.stock}
                     className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-brand-400"
                     aria-label="Tăng số lượng"
                   >
@@ -887,6 +907,11 @@ function ProductDetail() {
                   onClick={() => {
                     if (!product) return;
                     if (!inStock) return;
+                    if (!user) {
+                      toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng.");
+                      navigate("/login");
+                      return;
+                    }
 
                     addToCart({
                       productId: product._id,
@@ -906,7 +931,7 @@ function ProductDetail() {
                   }`}
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Thêm vào giỏ hàng
+                  {addToCartLabel}
                 </button>
               </div>
 
