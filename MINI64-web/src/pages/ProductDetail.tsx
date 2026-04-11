@@ -252,6 +252,16 @@ function ProductDetail() {
   }, [id]);
 
   useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    setQuantity((current) =>
+      Math.max(1, Math.min(current, Math.max(1, product.stock))),
+    );
+  }, [product]);
+
+  useEffect(() => {
     if (inStock) {
       return;
     }
@@ -863,6 +873,7 @@ function ProductDetail() {
                   <button
                     type="button"
                     onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                    disabled={!inStock}
                     className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-brand-400"
                     aria-label="Giảm số lượng"
                   >
@@ -873,7 +884,10 @@ function ProductDetail() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setQuantity((prev) => prev + 1)}
+                    onClick={() =>
+                      setQuantity((prev) => Math.min(product.stock, prev + 1))
+                    }
+                    disabled={!inStock || quantity >= product.stock}
                     className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-brand-400"
                     aria-label="Tăng số lượng"
                   >
@@ -906,7 +920,7 @@ function ProductDetail() {
                   }`}
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Thêm vào giỏ hàng
+                  {inStock ? "Thêm vào giỏ hàng" : "Sản phẩm đã hết hàng"}
                 </button>
               </div>
 

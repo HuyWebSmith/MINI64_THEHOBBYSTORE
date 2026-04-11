@@ -10,6 +10,7 @@ import type { ReactElement } from "react";
 
 // Import các trang
 import Home from "./layouts/Home";
+import AdminDashboardHome from "./pages/Dashboard/Home";
 import Login from "./pages/SignInPage";
 import SignUp from "./pages/SignUpPage";
 
@@ -147,7 +148,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRole="admin" />}>
           {/* Đặt path="/admin" ở AppLayout */}
           <Route path="/admin" element={<AppLayout />}>
-            <Route index element={<Blank />} />
+            <Route index element={<AdminDashboardHome />} />
             <Route path="products" element={<ProductManagement />} />
             <Route path="orders" element={<OrderManagement />} />
             <Route path="brands" element={<BrandManagement />} />
@@ -158,6 +159,7 @@ function App() {
             <Route path="calendar" element={<Calendar />} />
             <Route path="form-elements" element={<FormElements />} />
             <Route path="basic-tables" element={<BasicTables />} />
+            <Route path="blank" element={<Blank />} />
             <Route path="alerts" element={<Alerts />} />
             <Route path="avatars" element={<Avatars />} />
             <Route path="badge" element={<Badges />} />

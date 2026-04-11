@@ -3,9 +3,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { ReactNode } from "react";
+import toast from "react-hot-toast";
+import { UserContext } from "./UserContext";
 
 export type CartItem = {
   productId: string;
@@ -22,53 +25,166 @@ type CartContextType = {
   cartItems: CartItem[];
   cartCount: number;
   subtotal: number;
+  hasUnavailableItems: boolean;
+  unavailableItems: CartItem[];
   addToCart: (item: CartItem) => void;
   updateQuantity: (productId: string, amount: number) => void;
   removeFromCart: (productId: string) => void;
+  syncCartItemsStock: (
+    updates: { productId: string; stock: number }[],
+  ) => void;
   clearCart: () => void;
 };
 
-const CART_STORAGE_KEY = "mini64_cart";
+const CART_STORAGE_KEY_PREFIX = "mini64_cart";
+const GUEST_CART_STORAGE_KEY = `${CART_STORAGE_KEY_PREFIX}_guest`;
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    const storedCart =
-      typeof window !== "undefined"
-        ? localStorage.getItem(CART_STORAGE_KEY)
-        : null;
+function sanitizeCartItem(item: CartItem): CartItem {
+  return {
+    ...item,
+    amount: Math.max(1, Math.floor(Number(item.amount) || 1)),
+    stock: Math.max(0, Math.floor(Number(item.stock) || 0)),
+  };
+}
 
-    if (!storedCart) {
-      return [];
+function getCartStorageKey(userId?: string | null) {
+  return userId ? `${CART_STORAGE_KEY_PREFIX}_${userId}` : GUEST_CART_STORAGE_KEY;
+}
+
+function readCartFromStorage(storageKey: string) {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const storedCart = localStorage.getItem(storageKey);
+
+  if (!storedCart) {
+    return [];
+  }
+
+  try {
+    return (JSON.parse(storedCart) as CartItem[]).map(sanitizeCartItem);
+  } catch {
+    return [];
+  }
+}
+
+function writeCartToStorage(storageKey: string, items: CartItem[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (items.length === 0) {
+    localStorage.removeItem(storageKey);
+    return;
+  }
+
+  localStorage.setItem(storageKey, JSON.stringify(items));
+}
+
+function mergeCartItems(currentItems: CartItem[], incomingItems: CartItem[]) {
+  const mergedItems = [...currentItems];
+
+  incomingItems.forEach((incomingItem) => {
+    const normalizedItem = sanitizeCartItem(incomingItem);
+    const existingIndex = mergedItems.findIndex(
+      (item) => item.productId === normalizedItem.productId,
+    );
+
+    if (existingIndex === -1) {
+      mergedItems.push({
+        ...normalizedItem,
+        amount: Math.min(normalizedItem.amount, normalizedItem.stock),
+      });
+      return;
     }
 
-    try {
-      return JSON.parse(storedCart) as CartItem[];
-    } catch {
-      return [];
-    }
+    const existingItem = mergedItems[existingIndex];
+    const nextStock = Math.max(existingItem.stock, normalizedItem.stock);
+
+    mergedItems[existingIndex] = {
+      ...existingItem,
+      ...normalizedItem,
+      stock: nextStock,
+      amount: Math.min(existingItem.amount + normalizedItem.amount, nextStock),
+    };
   });
 
+  return mergedItems;
+}
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const { user } = useContext(UserContext);
+  const activeCartKey = useMemo(() => getCartStorageKey(user?._id), [user?._id]);
+  const previousCartKeyRef = useRef(activeCartKey);
+  const [cartItems, setCartItems] = useState<CartItem[]>(() =>
+    readCartFromStorage(activeCartKey),
+  );
+
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-  }, [cartItems]);
+    const previousCartKey = previousCartKeyRef.current;
+
+    if (previousCartKey === activeCartKey) {
+      return;
+    }
+
+    let nextCartItems = readCartFromStorage(activeCartKey);
+
+    if (
+      previousCartKey === GUEST_CART_STORAGE_KEY &&
+      activeCartKey !== GUEST_CART_STORAGE_KEY
+    ) {
+      const guestCartItems = readCartFromStorage(previousCartKey);
+
+      if (guestCartItems.length > 0) {
+        nextCartItems = mergeCartItems(nextCartItems, guestCartItems);
+        writeCartToStorage(activeCartKey, nextCartItems);
+        localStorage.removeItem(previousCartKey);
+      }
+    }
+
+    setCartItems(nextCartItems);
+    previousCartKeyRef.current = activeCartKey;
+  }, [activeCartKey]);
+
+  useEffect(() => {
+    writeCartToStorage(activeCartKey, cartItems);
+  }, [activeCartKey, cartItems]);
 
   const addToCart = (item: CartItem) => {
     setCartItems((current) => {
+      const normalizedItem = sanitizeCartItem(item);
+
+      if (normalizedItem.stock <= 0) {
+        toast.error("Sản phẩm này hiện đã hết hàng.");
+        return current;
+      }
+
       const existingItem = current.find(
-        (cartItem) => cartItem.productId === item.productId,
+        (cartItem) => cartItem.productId === normalizedItem.productId,
       );
 
       if (!existingItem) {
-        return [...current, item];
+        return [
+          ...current,
+          {
+            ...normalizedItem,
+            amount: Math.min(normalizedItem.amount, normalizedItem.stock),
+          },
+        ];
       }
 
       return current.map((cartItem) =>
-        cartItem.productId === item.productId
+        cartItem.productId === normalizedItem.productId
           ? {
               ...cartItem,
-              amount: Math.min(cartItem.amount + item.amount, cartItem.stock),
+              ...normalizedItem,
+              amount: Math.min(
+                cartItem.amount + normalizedItem.amount,
+                normalizedItem.stock,
+              ),
             }
           : cartItem,
       );
@@ -80,13 +196,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       current
         .map((item) =>
           item.productId === productId
-            ? {
-                ...item,
-                amount: Math.max(1, Math.min(amount, item.stock)),
-              }
+            ? amount <= 0
+              ? null
+              : item.stock <= 0
+                ? item
+                : {
+                    ...item,
+                    amount: Math.max(1, Math.min(amount, item.stock)),
+                  }
             : item,
         )
-        .filter((item) => item.amount > 0),
+        .filter((item): item is CartItem => Boolean(item && item.amount > 0)),
     );
   };
 
@@ -96,8 +216,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const syncCartItemsStock = (updates: { productId: string; stock: number }[]) => {
+    const stockMap = new Map(
+      updates.map((update) => [
+        update.productId,
+        Math.max(0, Math.floor(Number(update.stock) || 0)),
+      ]),
+    );
+
+    setCartItems((current) =>
+      current.map((item) => {
+        const nextStock = stockMap.get(item.productId);
+
+        if (nextStock === undefined) {
+          return item;
+        }
+
+        return {
+          ...item,
+          stock: nextStock,
+          amount:
+            nextStock > 0 ? Math.max(1, Math.min(item.amount, nextStock)) : item.amount,
+        };
+      }),
+    );
+  };
+
   const clearCart = () => {
     setCartItems([]);
+    writeCartToStorage(activeCartKey, []);
   };
 
   const cartCount = useMemo(
@@ -110,17 +257,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [cartItems],
   );
 
+  const unavailableItems = useMemo(
+    () =>
+      cartItems.filter((item) => item.stock <= 0 || item.amount > item.stock),
+    [cartItems],
+  );
+
+  const hasUnavailableItems = unavailableItems.length > 0;
+
   const value = useMemo(
     () => ({
       cartItems,
       cartCount,
       subtotal,
+      hasUnavailableItems,
+      unavailableItems,
       addToCart,
       updateQuantity,
       removeFromCart,
+      syncCartItemsStock,
       clearCart,
     }),
-    [cartCount, cartItems, subtotal],
+    [cartCount, cartItems, hasUnavailableItems, subtotal, unavailableItems],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

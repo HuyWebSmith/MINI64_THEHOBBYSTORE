@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import axios from "axios";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 
@@ -89,6 +90,11 @@ const ProductsGrid = () => {
     scale: string,
     event: MouseEvent<HTMLButtonElement>,
   ) => {
+    if (item.stock <= 0) {
+      toast.error("Sản phẩm này hiện đã hết hàng.");
+      return;
+    }
+
     const imageRect = event.currentTarget
       .closest("[data-product-card]")
       ?.querySelector("img")
@@ -212,7 +218,8 @@ const ProductsGrid = () => {
                           key={`${item._id}-${scale}`}
                           type="button"
                           onClick={(event) => handleQuickAdd(item, scale, event)}
-                          className="rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-400 hover:text-black"
+                          disabled={item.stock <= 0}
+                          className="rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold text-white transition hover:bg-amber-400 hover:text-black disabled:cursor-not-allowed disabled:bg-white/5 disabled:text-white/40"
                         >
                           {scale}
                         </button>
@@ -251,7 +258,8 @@ const ProductsGrid = () => {
                   <button
                     type="button"
                     onClick={(event) => handleQuickAdd(item, "1:64", event)}
-                    className="rounded-full bg-purple-500 p-3 text-white hover:bg-yellow-400 hover:text-black"
+                    disabled={item.stock <= 0}
+                    className="rounded-full bg-purple-500 p-3 text-white hover:bg-yellow-400 hover:text-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
                     aria-label={`Thêm ${item.name} vào giỏ`}
                   >
                     <MdAddShoppingCart />

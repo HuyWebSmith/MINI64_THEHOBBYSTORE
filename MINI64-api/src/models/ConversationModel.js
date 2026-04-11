@@ -43,7 +43,6 @@ const conversationSchema = new mongoose.Schema(
     guestSessionId: {
       type: String,
       default: null,
-      index: true,
     },
     customerName: {
       type: String,

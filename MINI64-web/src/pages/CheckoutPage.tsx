@@ -16,7 +16,13 @@ function formatCurrency(price: number) {
 function CheckoutPage() {
   const navigate = useNavigate();
   const { user } = useContext(UserContext);
-  const { cartItems, subtotal, clearCart } = useCart();
+  const {
+    cartItems,
+    subtotal,
+    hasUnavailableItems,
+    syncCartItemsStock,
+    clearCart,
+  } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -37,9 +43,60 @@ function CheckoutPage() {
       return;
     }
 
+    if (hasUnavailableItems) {
+      setError("Giỏ hàng có sản phẩm đã hết hàng hoặc vượt quá tồn kho.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError("");
+
+      const stockChecks = await Promise.allSettled(
+        cartItems.map(async (item) => {
+          const response = await axios.get(
+            `${apiUrl}/api/product/get-details/${item.productId}`,
+          );
+
+          return {
+            productId: item.productId,
+            name: item.name,
+            stock: Number(response.data?.data?.stock ?? 0),
+            amount: item.amount,
+          };
+        }),
+      );
+
+      const checkedItems = stockChecks.map((result, index) =>
+        result.status === "fulfilled"
+          ? result.value
+          : {
+              productId: cartItems[index].productId,
+              name: cartItems[index].name,
+              stock: 0,
+              amount: cartItems[index].amount,
+            },
+      );
+
+      const invalidItems = checkedItems.filter(
+        (item) => item.stock <= 0 || item.amount > item.stock,
+      );
+
+      if (invalidItems.length > 0) {
+        syncCartItemsStock(
+          checkedItems.map((item) => ({
+            productId: item.productId,
+            stock: item.stock,
+          })),
+        );
+
+        setError(
+          `Một số sản phẩm không còn đủ hàng: ${invalidItems
+            .map((item) => item.name)
+            .join(", ")}. Giỏ hàng đã được cập nhật, vui lòng kiểm tra lại.`,
+        );
+        return;
+      }
 
       const payload = {
         orderItems: cartItems.map((item) => ({
@@ -69,7 +126,14 @@ function CheckoutPage() {
       });
     } catch (err) {
       console.error(err);
-      setError("Không thể tạo đơn hàng COD. Vui lòng thử lại.");
+      if (axios.isAxiosError(err)) {
+        setError(
+          err.response?.data?.message ||
+            "Không thể tạo đơn hàng COD. Vui lòng thử lại.",
+        );
+      } else {
+        setError("Không thể tạo đơn hàng COD. Vui lòng thử lại.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -97,6 +161,12 @@ function CheckoutPage() {
             {error ? (
               <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
                 {error}
+              </div>
+            ) : null}
+
+            {hasUnavailableItems ? (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
+                Giỏ hàng có sản phẩm đã hết hàng hoặc vượt quá số lượng tồn kho.
               </div>
             ) : null}
 
@@ -186,7 +256,7 @@ function CheckoutPage() {
 
             <button
               type="submit"
-              disabled={submitting || cartItems.length === 0}
+              disabled={submitting || cartItems.length === 0 || hasUnavailableItems}
               className="mt-8 w-full rounded-2xl bg-indigo-600 px-5 py-3 font-bold text-white transition hover:bg-themeYellow hover:text-black disabled:cursor-not-allowed disabled:opacity-60 dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black"
             >
               {submitting ? "Đang xác nhận..." : "Xác nhận đặt hàng"}
@@ -206,6 +276,15 @@ function CheckoutPage() {
                     <p className="text-gray-500 dark:text-gray-400">
                       {item.amount} x {formatCurrency(item.price)}
                     </p>
+                    {item.stock <= 0 ? (
+                      <p className="mt-1 text-xs font-semibold text-rose-600 dark:text-rose-300">
+                        Hết hàng
+                      </p>
+                    ) : item.amount > item.stock ? (
+                      <p className="mt-1 text-xs font-semibold text-amber-600 dark:text-amber-300">
+                        Chỉ còn {item.stock} sản phẩm
+                      </p>
+                    ) : null}
                   </div>
                   <p className="font-semibold">
                     {formatCurrency(item.amount * item.price)}

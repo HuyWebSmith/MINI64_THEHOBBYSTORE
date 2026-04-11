@@ -56,6 +56,7 @@ function detectScale(product: ProductItem) {
 
 function ProductCard({ product }: { product: ProductItem }) {
   const { addToCart } = useCart();
+  const isOutOfStock = product.stock <= 0;
 
   return (
     <div className="group relative overflow-hidden rounded-[28px] border border-gray-100 bg-white p-4 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl dark:border-white/10 dark:bg-gray-900">
@@ -107,6 +108,7 @@ function ProductCard({ product }: { product: ProductItem }) {
           </div>
           <button
             type="button"
+            disabled={isOutOfStock}
             onClick={() =>
               addToCart({
                 productId: product._id,
@@ -119,7 +121,7 @@ function ProductCard({ product }: { product: ProductItem }) {
                 stock: product.stock,
               })
             }
-            className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 transition hover:bg-themeYellow hover:text-black dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 transition hover:bg-themeYellow hover:text-black disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none dark:bg-brand-500 dark:hover:bg-themeYellow dark:hover:text-black dark:disabled:bg-white/10 dark:disabled:text-white/40"
             aria-label={`Thêm nhanh ${product.name} vào giỏ`}
           >
             <ShoppingCart className="h-5 w-5" />
